@@ -35,7 +35,11 @@ jobs:
           source install/setup.bash
           ros2 launch delivery_bot_navigation bringup.launch.py sim:=true > launch.log 2>&1 &
           trap 'kill %1 || true; cat launch.log' EXIT
-          timeout 30 ros2 topic echo --once --qos-durability transient_local /grid_step/state
-          timeout 30 ros2 topic echo --once --qos-durability transient_local /robot_description > /dev/null
+          set -x
+          sleep 5
+          ros2 node list --no-daemon
+          ros2 topic list -t --no-daemon
+          timeout 30 ros2 topic echo --once --qos-durability transient_local /grid_step/state std_msgs/msg/String
+          timeout 30 ros2 topic echo --once --qos-durability transient_local /robot_description std_msgs/msg/String > /dev/null
           ros2 param get /grid_step_controller use_sim_time | grep -q True
           ros2 param get /grid_step_controller step_size | grep -q 0.5
