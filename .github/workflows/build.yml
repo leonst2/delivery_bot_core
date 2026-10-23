@@ -42,6 +42,11 @@ jobs:
           sleep 5
           ros2 node list --no-daemon
           ros2 topic list -t --no-daemon
+          ros2 topic info -v /grid_step/state --no-daemon || true
+          timeout 15 ros2 topic echo --once /tf_static --no-daemon > /dev/null && echo TF_STATIC_OK || echo TF_STATIC_FAIL
+          (sleep 3; ros2 topic pub -t 5 /ci_probe std_msgs/msg/String "{data: hi}") &
+          timeout 15 ros2 topic echo --once /ci_probe std_msgs/msg/String --no-daemon && echo PROBE_OK || echo PROBE_FAIL
+          timeout 15 ros2 topic echo --once --qos-durability transient_local /grid_step/state std_msgs/msg/String --no-daemon && echo STATE_OK || echo STATE_FAIL
           timeout 30 ros2 topic echo --once --qos-durability transient_local /grid_step/state std_msgs/msg/String
           timeout 30 ros2 topic echo --once --qos-durability transient_local /robot_description std_msgs/msg/String > /dev/null
           ros2 param get /grid_step_controller use_sim_time | grep -q True
