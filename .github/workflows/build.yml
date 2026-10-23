@@ -31,6 +31,9 @@ jobs:
           colcon test-result --verbose
       - name: Launch smoke test (sim:=true)
         shell: bash
+        env:
+          # Fast DDS shared memory doesn't deliver data inside the CI container; discovery alone works.
+          FASTDDS_BUILTIN_TRANSPORTS: UDPv4
         run: |
           source install/setup.bash
           ros2 launch delivery_bot_navigation bringup.launch.py sim:=true > launch.log 2>&1 &
