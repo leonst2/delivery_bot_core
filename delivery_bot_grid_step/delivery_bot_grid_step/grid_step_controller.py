@@ -2,11 +2,12 @@
 
 Target loop, implemented in leonst2/delivery_bot_sim#12:
 HALT -> PERCEIVE -> UPDATE_MAP -> PLAN -> MOVE_ONE_STEP (step_size metres) -> HALT ...
-For now the node only declares its parameters and reports IDLE on /grid_step/state.
+For now the node only declares its parameters and reports IDLE on /grid_step/state (latched, published on change).
 """
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, QoSProfile
 from std_msgs.msg import String
 
 STATES = ('IDLE', 'HALT', 'PERCEIVE', 'UPDATE_MAP', 'PLAN', 'MOVE_ONE_STEP', 'DONE', 'FAILED')
@@ -22,14 +23,20 @@ class GridStepController(Node):
         self.declare_parameter('settle_velocity', 0.02)
         self.declare_parameter('max_replan_failures', 3)
 
-        self.state = 'IDLE'
-        self._state_pub = self.create_publisher(String, '/grid_step/state', 10)
-        self.create_timer(1.0, self._publish_state)
+        # Latched, so late subscribers (e.g. the Unity UI) get the current state right away.
+        latched = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        self._state_pub = self.create_publisher(String, '/grid_step/state', latched)
+        self.state = None
+        self.set_state('IDLE')
         self.get_logger().info(
             f"grid_step_controller stub up (step_size={self.get_parameter('step_size').value} m)")
 
-    def _publish_state(self):
-        self._state_pub.publish(String(data=self.state))
+    def set_state(self, state):
+        if state not in STATES:
+            raise ValueError(f'unknown state {state}')
+        if state != self.state:
+            self.state = state
+            self._state_pub.publish(String(data=state))
 
 
 def main(args=None):
