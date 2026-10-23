@@ -1,0 +1,6 @@
+# Sim-only overlay, applied on top of nav2_params.yaml when launched with sim:=true.
+# Only put simulation differences here (sim time, topic remaps), never different navigation logic.
+
+/**:
+  ros__parameters:
+    use_sim_time: true

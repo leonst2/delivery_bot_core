@@ -1,0 +1,7 @@
+# Nav2 parameters for the delivery_bot, shared by the simulation and the physical robot.
+# Placeholder: costmaps, Smac Hybrid-A* planner (Ackermann, min turning radius ~1.25 m) and footprint
+# are added in leonst2/delivery_bot_sim#11. Keep sim-only values out of this file (see sim.yaml).
+
+grid_step_controller:
+  ros__parameters:
+    step_size: 0.5
