@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>delivery_bot_rust_hello</name>
+  <version>0.1.0</version>
+  <description>Rust toolchain spike (delivery_bot_core#2): an rclrs node that listens to /clock and publishes heartbeats.</description>
+  <maintainer email="leonstiffel@gmail.com">Leon Stiffel</maintainer>
+  <license>Proprietary</license>
+
+  <depend>rclrs</depend>
+  <depend>rosgraph_msgs</depend>
+  <depend>delivery_bot_spike_msgs</depend>
+
+  <export>
+    <build_type>ament_cargo</build_type>
+  </export>
+</package>

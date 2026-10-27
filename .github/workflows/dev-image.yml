@@ -1,0 +1,40 @@
+name: dev-image
+
+# Builds the development image (ROS 2 Jazzy ros-core + C++/Python/Rust) and builds/tests the workspace inside it.
+# The image build itself fails if a forbidden package (Nav2, robot_state_publisher, ...) is present.
+on:
+  push:
+  pull_request:
+
+jobs:
+  dev-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src/delivery_bot_core
+      - uses: docker/setup-buildx-action@v3
+      - name: Build dev image
+        uses: docker/build-push-action@v6
+        with:
+          context: src/delivery_bot_core/docker
+          tags: delivery_bot_core_dev:jazzy
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Build and test the workspace
+        run: |
+          docker run --rm -v "$PWD/src:/ws/src" -w /ws delivery_bot_core_dev:jazzy bash -c '
+            set -e
+            colcon build --event-handlers console_cohesion+
+            colcon test --event-handlers console_cohesion+
+            colcon test-result --verbose'
+      - name: Rust format, lint and unit tests
+        run: |
+          docker run --rm -v "$PWD/src:/ws/src" -w /ws delivery_bot_core_dev:jazzy bash -c '
+            set -e
+            colcon build --packages-up-to delivery_bot_rust_hello
+            source install/setup.bash
+            for pkg in $(find src -name Cargo.toml -not -path "*/target/*" -exec dirname {} \;); do
+              (cd "$pkg" && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test)
+            done'

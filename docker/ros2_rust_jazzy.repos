@@ -1,0 +1,40 @@
+# ros2_rust overlay for ROS 2 Jazzy, pinned to commits.
+# Source: ros2-rust/ros2_rust ros2_rust_jazzy.repos (v0.8.0 era), without the examples repo.
+# These interface packages are rebuilt with rosidl_generator_rs present, so they get Rust bindings.
+repositories:
+  ros2/common_interfaces:
+    type: git
+    url: https://github.com/ros2/common_interfaces.git
+    version: a941f14bb318d8d904505ed935ccbb97f24a70a4  # jazzy
+  ros2/example_interfaces:
+    type: git
+    url: https://github.com/ros2/example_interfaces.git
+    version: 4ed406d1277df78be01a31005306d69e7592a993  # jazzy
+  ros2/rcl_interfaces:
+    type: git
+    url: https://github.com/ros2/rcl_interfaces.git
+    version: 7aa3caf43377ea6ad615bc1040832e2c7566bfbe  # jazzy
+  ros2/test_interface_files:
+    type: git
+    url: https://github.com/ros2/test_interface_files.git
+    version: 1c92e082fe14f90b772d308d113e510ad2c79fb9  # jazzy
+  ros2/rosidl_core:
+    type: git
+    url: https://github.com/ros2/rosidl_core.git
+    version: c6eb22b0e77cf57b19e9c6ffd114a00749404215  # jazzy
+  ros2/rosidl_defaults:
+    type: git
+    url: https://github.com/ros2/rosidl_defaults.git
+    version: 9749b5919add7e5960cd931ec547d45f06bd0025  # jazzy
+  ros2/unique_identifier_msgs:
+    type: git
+    url: https://github.com/ros2/unique_identifier_msgs.git
+    version: 901599ee92c2ee949f42a5c5d821c92b3e515d69  # jazzy
+  ros2-rust/rosidl_rust:
+    type: git
+    url: https://github.com/ros2-rust/rosidl_rust.git
+    version: 19d57818dab3b51e418c0893b70b3a1a8b64c495  # main
+  ros2-rust/rosidl_runtime_rs:
+    type: git
+    url: https://github.com/ros2-rust/rosidl_runtime_rs.git
+    version: 21def427689fda0156dd4b0dff28d8d0318af03b  # main
