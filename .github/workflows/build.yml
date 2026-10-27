@@ -1,5 +1,8 @@
 name: build
 
+# Legacy job in ros:jazzy (ros-base): kept only for the launch smoke test, which still needs robot_state_publisher
+# until #5 replaces it. Rust packages need the toolchain from the dev image, so they're skipped here and built,
+# tested and linted in dev-image.yml instead.
 on:
   push:
   pull_request:
@@ -17,17 +20,17 @@ jobs:
         run: |
           apt-get update
           rosdep update
-          rosdep install --from-paths src --ignore-src -y
+          rosdep install --from-paths src --ignore-src -y --skip-keys rclrs
       - name: Build
         shell: bash
         run: |
           source /opt/ros/jazzy/setup.bash
-          colcon build --event-handlers console_direct+
+          colcon build --event-handlers console_direct+ --packages-skip delivery_bot_rust_hello
       - name: Test
         shell: bash
         run: |
           source /opt/ros/jazzy/setup.bash
-          colcon test --event-handlers console_direct+
+          colcon test --event-handlers console_direct+ --packages-skip delivery_bot_rust_hello
           colcon test-result --verbose
       - name: Launch smoke test (sim:=true)
         shell: bash
