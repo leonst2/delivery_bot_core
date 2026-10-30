@@ -1,0 +1,16 @@
+geometry_msgs/PoseStamped start  # empty frame_id = current pose
+geometry_msgs/PoseStamped goal
+float32 time_limit               # s
+---
+uint8 ERROR_NONE=0
+uint8 ERROR_NO_PATH=1
+uint8 ERROR_TIMEOUT=2
+uint8 ERROR_INVALID_START=3
+uint8 ERROR_INVALID_GOAL=4
+
+nav_msgs/Path path
+float32 cost
+float32 planning_time  # s
+uint8 error_code       # one of the ERROR_ constants above
+---
+uint32 expanded_nodes

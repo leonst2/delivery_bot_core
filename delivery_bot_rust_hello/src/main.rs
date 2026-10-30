@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use rclrs::*;
-use ros_env::delivery_bot_spike_msgs::msg::Heartbeat;
+use ros_env::delivery_bot_interfaces::msg::Heartbeat;
 use ros_env::rosgraph_msgs::msg::Clock;
 
 const NODE_NAME: &str = "rust_hello";
@@ -63,6 +63,19 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ros_env::delivery_bot_interfaces::msg::AckermannCommand;
+    use std::borrow::Cow;
+
+    #[test]
+    fn interfaces_convert_to_the_rmw_form_and_back() {
+        let message = AckermannCommand {
+            speed: 1.5,
+            steering_angle: -0.25,
+            ..Default::default()
+        };
+        let rmw = AckermannCommand::into_rmw_message(Cow::Borrowed(&message)).into_owned();
+        assert_eq!(AckermannCommand::from_rmw_message(rmw), message);
+    }
 
     #[test]
     fn warns_without_clock() {

@@ -1,0 +1,5 @@
+geometry_msgs/Pose robot_pose  # map frame
+uint32 seed
+---
+bool success
+string message

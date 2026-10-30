@@ -1,0 +1,16 @@
+nav_msgs/Path path
+float32 step_size  # m
+float32 max_speed  # m/s
+---
+uint8 ERROR_NONE=0
+uint8 ERROR_INVALID_PATH=1
+uint8 ERROR_TRACKING_LOST=2
+uint8 ERROR_SAFETY_STOP=3
+uint8 ERROR_CANCELLED=4
+
+bool success
+float32 distance_travelled       # m
+float32 final_cross_track_error  # m
+uint8 error_code                 # one of the ERROR_ constants above
+---
+float32 distance_travelled  # m

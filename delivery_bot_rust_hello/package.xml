@@ -3,13 +3,13 @@
 <package format="3">
   <name>delivery_bot_rust_hello</name>
   <version>0.1.0</version>
-  <description>Rust toolchain spike (delivery_bot_core#2): an rclrs node that listens to /clock and publishes heartbeats.</description>
+  <description>Rust toolchain spike (delivery_bot_core#2): an rclrs node that listens to /clock and publishes heartbeats. Also holds the Rust check of delivery_bot_interfaces.</description>
   <maintainer email="leonstiffel@gmail.com">Leon Stiffel</maintainer>
   <license>Proprietary</license>
 
   <depend>rclrs</depend>
   <depend>rosgraph_msgs</depend>
-  <depend>delivery_bot_spike_msgs</depend>
+  <depend>delivery_bot_interfaces</depend>
 
   <export>
     <build_type>ament_cargo</build_type>
