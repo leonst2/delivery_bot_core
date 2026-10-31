@@ -19,6 +19,7 @@ This repository is the single source of the navigation logic. The same commit ru
 | `delivery_bot_grid_step` | ament_python | `grid_step_controller` node: halt → perceive → map → plan → move one cell → repeat *(stub)* |
 | `delivery_bot_perception` | ament_python | `obstacle_tracker` node: dynamic obstacle tracking from `/scan` *(stub)* |
 | `delivery_bot_rust_hello` | ament_cargo | Rust toolchain spike (#2): rclrs node, `/clock` → `/heartbeat` |
+| `delivery_bot_bringup` | ament_python | `stack.launch.py`, sim overlay, health monitor and heartbeat helper, see its [README](delivery_bot_bringup/README.md) |
 | `delivery_bot_interfaces` | ament_cmake (rosidl) | Every custom message, service and action of the stack, see its [README](delivery_bot_interfaces/README.md) |
 | `delivery_bot_interfaces_tests` | ament_cmake | C++ and Python serialisation checks for `delivery_bot_interfaces` |
 
@@ -29,13 +30,15 @@ meshes as `package://delivery_bot/meshes/...`. The Unity simulation imports the 
 ## Sim vs. robot
 
 ```bash
-ros2 launch delivery_bot_navigation bringup.launch.py sim:=true    # Unity simulation
-ros2 launch delivery_bot_navigation bringup.launch.py              # physical robot
+ros2 launch delivery_bot_bringup stack.launch.py sim:=true    # Unity simulation
+ros2 launch delivery_bot_bringup stack.launch.py              # physical robot
 ```
 
-`sim:=true` only layers `delivery_bot_navigation/config/sim.yaml` on top of the shared parameters and sets
-`use_sim_time` on robot_state_publisher. Simulation differences are limited to that overlay: sim time and topic
-remaps. Never fork the navigation logic for the simulation.
+`sim:=true` only layers `delivery_bot_bringup/params/sim.yaml` on top of the shared parameters. Simulation differences
+are limited to that overlay. Never fork the navigation logic for the simulation.
+
+The older `delivery_bot_navigation/bringup.launch.py` stays until #1 folds it into `delivery_bot_bringup`. It needs
+`robot_state_publisher`, so it only runs in the legacy CI job, not in the dev image.
 
 ## Build
 

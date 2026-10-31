@@ -1,0 +1,4 @@
+# Parameters shared by the simulation and the physical robot.
+/**:
+  ros__parameters:
+    heartbeat_period: 0.25  # s, must stay <= 0.5 (heartbeats are required at >= 2 Hz)

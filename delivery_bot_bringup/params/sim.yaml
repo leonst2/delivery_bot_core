@@ -1,0 +1,5 @@
+# Sim-only overlay, applied on top of common.yaml when launched with sim:=true.
+# Only simulation differences go here. test_params.py rejects anything else.
+/**:
+  ros__parameters:
+    use_sim_time: true
