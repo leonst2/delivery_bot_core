@@ -1,0 +1,5 @@
+string scenario_name
+uint32 seed
+---
+bool success
+string message

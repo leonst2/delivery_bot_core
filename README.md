@@ -19,7 +19,8 @@ This repository is the single source of the navigation logic. The same commit ru
 | `delivery_bot_grid_step` | ament_python | `grid_step_controller` node: halt → perceive → map → plan → move one cell → repeat *(stub)* |
 | `delivery_bot_perception` | ament_python | `obstacle_tracker` node: dynamic obstacle tracking from `/scan` *(stub)* |
 | `delivery_bot_rust_hello` | ament_cargo | Rust toolchain spike (#2): rclrs node, `/clock` → `/heartbeat` |
-| `delivery_bot_spike_msgs` | ament_cmake (rosidl) | Temporary `Heartbeat` message for the spike, removed once `delivery_bot_interfaces` (#3) lands |
+| `delivery_bot_interfaces` | ament_cmake (rosidl) | Every custom message, service and action of the stack, see its [README](delivery_bot_interfaces/README.md) |
+| `delivery_bot_interfaces_tests` | ament_cmake | C++ and Python serialisation checks for `delivery_bot_interfaces` |
 
 The description package is called `delivery_bot`, not `delivery_bot_description`, because the URDF refers to its
 meshes as `package://delivery_bot/meshes/...`. The Unity simulation imports the same URDF file. Its copy in
@@ -73,9 +74,12 @@ docker run --rm -it -v "$PWD/..:/ws/src" delivery_bot_core_dev:jazzy   # repo ch
 the `ros-env` crate. On Jazzy, message packages only get Rust bindings if they're built while
 `rosidl_generator_rs` is installed. So the image builds an overlay in `/opt/ros2_rust` with the generator and the
 standard interfaces rebuilt from `docker/ros2_rust_jazzy.repos` (pinned commits). Interface packages in this
-workspace (e.g. `delivery_bot_spike_msgs`) get Rust bindings automatically. `scripts/setup_rust.sh` sets up the same
+workspace (e.g. `delivery_bot_interfaces`) get Rust bindings automatically. `scripts/setup_rust.sh` sets up the same
 on a native Ubuntu 24.04 machine. CI: `.github/workflows/dev-image.yml` builds the image, builds and tests the
 workspace in it, and runs `cargo fmt --check`, `clippy -D warnings` and `cargo test` for every Rust package.
+
+Every Rust package needs a `build.rs` like the one in `delivery_bot_rust_hello`. rclrs's build script doesn't rerun when
+`AMENT_PREFIX_PATH` changes, so without it a new interface package fails to link in a cached workspace.
 
 **Fallback if native Rust nodes ever break** (e.g. an rclrs/Jazzy incompatibility): keep the algorithms in a plain
 Rust crate with a C ABI (`cbindgen` header), and wrap it in a thin rclcpp node. The Rust cards (#7, #8, #11, #19)

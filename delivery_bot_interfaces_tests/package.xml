@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>delivery_bot_interfaces_tests</name>
+  <version>0.1.0</version>
+  <description>Checks that the C++ and Python bindings of delivery_bot_interfaces construct and serialise messages. The Rust check is in delivery_bot_rust_hello.</description>
+  <maintainer email="leonstiffel@gmail.com">Leon Stiffel</maintainer>
+  <license>Proprietary</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>ament_cmake_pytest</test_depend>
+  <test_depend>delivery_bot_interfaces</test_depend>
+  <test_depend>python3-pytest</test_depend>
+  <test_depend>rclcpp</test_depend>
+  <test_depend>rclpy</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

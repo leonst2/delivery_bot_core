@@ -1,15 +1,18 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>delivery_bot_spike_msgs</name>
+  <name>delivery_bot_interfaces</name>
   <version>0.1.0</version>
-  <description>Temporary message package for the Rust toolchain spike (delivery_bot_core#2). Replaced by delivery_bot_interfaces (#3).</description>
+  <description>Every custom message, service and action of the delivery_bot stack, shared by C++, Rust, Python and C#.</description>
   <maintainer email="leonstiffel@gmail.com">Leon Stiffel</maintainer>
   <license>Proprietary</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>rosidl_default_generators</buildtool_depend>
 
+  <depend>action_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
   <depend>std_msgs</depend>
 
   <exec_depend>rosidl_default_runtime</exec_depend>
