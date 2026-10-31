@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>delivery_bot_bringup</name>
+  <version>0.1.0</version>
+  <description>Starts the whole delivery_bot stack with one launch command and monitors every node through heartbeats.</description>
+  <maintainer email="leonstiffel@gmail.com">Leon Stiffel</maintainer>
+  <license>Proprietary</license>
+
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>delivery_bot_interfaces</exec_depend>
+  <exec_depend>diagnostic_msgs</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+
+  <test_depend>python3-pytest</test_depend>
+  <test_depend>python3-yaml</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

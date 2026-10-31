@@ -29,6 +29,15 @@ jobs:
             colcon build --event-handlers console_cohesion+
             colcon test --event-handlers console_cohesion+
             colcon test-result --verbose'
+      - name: Stack smoke test (every node OK within 30 s)
+        run: |
+          docker run --rm -v "$PWD/src:/ws/src" -w /ws -e FASTDDS_BUILTIN_TRANSPORTS=UDPv4 \
+            delivery_bot_core_dev:jazzy bash -c '
+            set -e
+            colcon build --packages-up-to delivery_bot_bringup
+            source install/setup.bash
+            ros2 launch delivery_bot_bringup stack.launch.py sim:=true &
+            ros2 run delivery_bot_bringup health_check --timeout 30'
       - name: Rust format, lint and unit tests
         run: |
           docker run --rm -v "$PWD/src:/ws/src" -w /ws delivery_bot_core_dev:jazzy bash -c '
