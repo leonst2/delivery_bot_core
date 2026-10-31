@@ -78,6 +78,9 @@ workspace (e.g. `delivery_bot_interfaces`) get Rust bindings automatically. `scr
 on a native Ubuntu 24.04 machine. CI: `.github/workflows/dev-image.yml` builds the image, builds and tests the
 workspace in it, and runs `cargo fmt --check`, `clippy -D warnings` and `cargo test` for every Rust package.
 
+Every Rust package needs a `build.rs` like the one in `delivery_bot_rust_hello`. rclrs's build script doesn't rerun when
+`AMENT_PREFIX_PATH` changes, so without it a new interface package fails to link in a cached workspace.
+
 **Fallback if native Rust nodes ever break** (e.g. an rclrs/Jazzy incompatibility): keep the algorithms in a plain
 Rust crate with a C ABI (`cbindgen` header), and wrap it in a thin rclcpp node. The Rust cards (#7, #8, #11, #19)
 would then implement crate + wrapper instead of an rclrs node.
