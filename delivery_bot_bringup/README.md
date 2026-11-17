@@ -15,8 +15,9 @@ ros2 launch delivery_bot_bringup stack.launch.py sim:=true|false map:=<path>
 
 ## Nodes
 
-`delivery_bot_bringup/stack.py` lists every node with its stage and respawn policy. Nodes whose card hasn't landed
-are `stub_node`, which only publishes heartbeats. A card replaces `package` and `executable` in its row.
+`delivery_bot_bringup/stack.py` lists every node with its stage, package, executable and respawn policy. Each node
+has its own package. Until its card lands, that package's executable is a stub that only publishes heartbeats. The
+card replaces the stub and keeps the row, unless it renames the executable.
 
 Stages start in dependency order: description → odometry → localization → perception → mapping → planning →
 executive. A stage starts once every node of the previous stage has sent a heartbeat. If that takes more than 30 s,

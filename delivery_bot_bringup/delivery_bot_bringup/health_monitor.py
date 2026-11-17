@@ -2,7 +2,6 @@
 
 import time
 
-from delivery_bot_interfaces.msg import Heartbeat
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus
 import rclpy
 from rclpy.clock import Clock, ClockType
@@ -12,6 +11,7 @@ from rclpy.qos import DurabilityPolicy, QoSProfile
 
 from delivery_bot_bringup.health import HealthTracker, STALL_TIMEOUT
 from delivery_bot_bringup.heartbeat import HEARTBEAT_TOPIC, HeartbeatPublisher
+from delivery_bot_interfaces.msg import Heartbeat
 
 HEALTH_TOPIC = '/health'
 HEALTH_QOS = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)

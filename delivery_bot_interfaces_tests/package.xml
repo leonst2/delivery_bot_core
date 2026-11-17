@@ -3,7 +3,7 @@
 <package format="3">
   <name>delivery_bot_interfaces_tests</name>
   <version>0.1.0</version>
-  <description>Checks that the C++ and Python bindings of delivery_bot_interfaces construct and serialise messages. The Rust check is in delivery_bot_rust_hello.</description>
+  <description>Checks that the C++ and Python bindings of delivery_bot_interfaces construct and serialise messages. The Rust check is in delivery_bot_step_controller.</description>
   <maintainer email="leonstiffel@gmail.com">Leon Stiffel</maintainer>
   <license>Proprietary</license>
 

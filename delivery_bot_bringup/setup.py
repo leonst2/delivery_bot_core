@@ -25,7 +25,6 @@ setup(
         'console_scripts': [
             'health_check = delivery_bot_bringup.health_check:main',
             'health_monitor = delivery_bot_bringup.health_monitor:main',
-            'stub_node = delivery_bot_bringup.stub_node:main',
             'wait_for_heartbeats = delivery_bot_bringup.wait_for_heartbeats:main',
         ],
     },

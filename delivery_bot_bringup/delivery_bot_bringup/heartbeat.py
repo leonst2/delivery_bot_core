@@ -1,7 +1,8 @@
 """Heartbeat helper for Python nodes. C++ and Rust nodes publish the same message with about 10 lines of code."""
 
-from delivery_bot_interfaces.msg import Heartbeat
 from rclpy.clock import Clock, ClockType
+
+from delivery_bot_interfaces.msg import Heartbeat
 
 HEARTBEAT_TOPIC = '/heartbeat'
 DEFAULT_PERIOD = 0.25  # s

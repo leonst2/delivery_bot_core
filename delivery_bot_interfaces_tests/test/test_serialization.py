@@ -1,6 +1,7 @@
+from rclpy.serialization import deserialize_message, serialize_message
+
 from delivery_bot_interfaces.msg import AckermannCommand, Heartbeat
 from delivery_bot_interfaces.srv import ResetSim
-from rclpy.serialization import deserialize_message, serialize_message
 
 
 def round_trip(message):

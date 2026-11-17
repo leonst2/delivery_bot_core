@@ -1,7 +1,8 @@
 name: dev-image
 
-# Builds the development image (ROS 2 Jazzy ros-core + C++/Python/Rust) and builds/tests the workspace inside it.
-# The image build itself fails if a forbidden package (Nav2, robot_state_publisher, ...) is present.
+# Builds the development image (ROS 2 Jazzy ros-core + C++/Python/Rust), then builds, tests, smoke-tests and lints
+# the whole workspace inside it. The image build itself fails if a forbidden package (Nav2, robot_state_publisher, ...)
+# is present. The checkout is the workspace root, so build/ and install/ carry over from one step to the next.
 on:
   push:
   pull_request:
@@ -9,6 +10,8 @@ on:
 jobs:
   dev-image:
     runs-on: ubuntu-latest
+    env:
+      RUN: docker run --rm -v ${{ github.workspace }}:/ws -w /ws -e FASTDDS_BUILTIN_TRANSPORTS=UDPv4 delivery_bot_core_dev:jazzy
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,28 +25,30 @@ jobs:
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - name: Build and test the workspace
+      - name: Build and test the workspace (gtest, pytest)
         run: |
-          docker run --rm -v "$PWD/src:/ws/src" -w /ws delivery_bot_core_dev:jazzy bash -c '
+          $RUN bash -c '
             set -e
-            colcon build --event-handlers console_cohesion+
+            colcon build --event-handlers console_cohesion+ --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
             colcon test --event-handlers console_cohesion+
             colcon test-result --verbose'
+      - name: Rust unit tests
+        run: |
+          $RUN bash -c '
+            set -e
+            source install/setup.bash
+            for pkg in $(find src -name Cargo.toml -not -path "*/target/*" -exec dirname {} \;); do
+              (cd "$pkg" && cargo test)
+            done'
       - name: Stack smoke test (every node OK within 30 s)
         run: |
-          docker run --rm -v "$PWD/src:/ws/src" -w /ws -e FASTDDS_BUILTIN_TRANSPORTS=UDPv4 \
-            delivery_bot_core_dev:jazzy bash -c '
+          $RUN bash -c '
             set -e
-            colcon build --packages-up-to delivery_bot_bringup
             source install/setup.bash
             ros2 launch delivery_bot_bringup stack.launch.py sim:=true &
             ros2 run delivery_bot_bringup health_check --timeout 30'
-      - name: Rust format, lint and unit tests
+      - name: Lint (ruff, clang-format, clang-tidy, cargo fmt, clippy)
         run: |
-          docker run --rm -v "$PWD/src:/ws/src" -w /ws delivery_bot_core_dev:jazzy bash -c '
-            set -e
-            colcon build --packages-up-to delivery_bot_rust_hello
+          $RUN bash -c '
             source install/setup.bash
-            for pkg in $(find src -name Cargo.toml -not -path "*/target/*" -exec dirname {} \;); do
-              (cd "$pkg" && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test)
-            done'
+            src/delivery_bot_core/scripts/lint.sh'

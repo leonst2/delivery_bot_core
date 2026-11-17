@@ -3,6 +3,6 @@ project(delivery_bot)
 
 find_package(ament_cmake REQUIRED)
 
-install(DIRECTORY urdf meshes launch DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY urdf meshes DESTINATION share/${PROJECT_NAME})
 
 ament_package()

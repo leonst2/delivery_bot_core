@@ -2,8 +2,9 @@
 
 from dataclasses import dataclass
 
-from delivery_bot_interfaces.msg import Heartbeat
 from diagnostic_msgs.msg import DiagnosticStatus
+
+from delivery_bot_interfaces.msg import Heartbeat
 
 STALL_TIMEOUT = 1.0  # s without a heartbeat before a node counts as stalled
 
