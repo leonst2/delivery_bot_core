@@ -21,7 +21,7 @@ public:
     const double period = declare_parameter("heartbeat_period", 0.25);
     publisher_ = create_publisher<Heartbeat>("/heartbeat", 10);
     // A wall timer runs on the steady clock. With use_sim_time, ROS timers stop without /clock.
-    timer_ = create_wall_timer(std::chrono::duration<double>(period), [this] {publish_heartbeat();});
+    timer_ = create_wall_timer(std::chrono::duration<double>(period), [this] { publish_heartbeat(); });
   }
 
 private:
