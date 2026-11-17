@@ -37,4 +37,4 @@ Each action's result defines its `ERROR_` constants, with `ERROR_NONE=0` for suc
 ## Tests
 
 Each language has a check that constructs and converts a message: C++ and Python in `delivery_bot_interfaces_tests`,
-Rust in `delivery_bot_rust_hello`.
+Rust in `delivery_bot_step_controller`.
