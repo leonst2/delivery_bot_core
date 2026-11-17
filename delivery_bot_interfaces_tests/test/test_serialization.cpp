@@ -12,7 +12,7 @@ using delivery_bot_interfaces::msg::TrackedObstacleArray;
 template<typename MessageT>
 MessageT round_trip(const MessageT & message)
 {
-  rclcpp::Serialization<MessageT> serialization;
+  const rclcpp::Serialization<MessageT> serialization;
   rclcpp::SerializedMessage serialized;
   serialization.serialize_message(&message, &serialized);
   MessageT result;
