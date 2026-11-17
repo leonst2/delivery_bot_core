@@ -1,0 +1,24 @@
+# Python lint for every package (scripts/lint.sh, CI). Matches the existing style: 120 columns, single quotes.
+line-length = 120
+target-version = "py312"  # Ubuntu 24.04 / ROS 2 Jazzy
+
+[lint]
+select = [
+  "E", "W",  # pycodestyle
+  "F",       # pyflakes
+  "I",       # import order
+  "B",       # bugbear
+  "N",       # pep8-naming
+  "Q",       # quotes
+  "UP",      # pyupgrade
+]
+
+[lint.flake8-quotes]
+inline-quotes = "single"
+multiline-quotes = "double"
+docstring-quotes = "double"
+
+[lint.isort]
+force-sort-within-sections = true
+known-first-party = ["delivery_bot_*"]  # every package of this repo
+order-by-type = false  # case-insensitive, like the existing code

@@ -4,11 +4,11 @@ import argparse
 import sys
 import time
 
-from delivery_bot_interfaces.msg import Heartbeat
 import rclpy
 from rclpy.node import Node
 
 from delivery_bot_bringup.heartbeat import HEARTBEAT_TOPIC
+from delivery_bot_interfaces.msg import Heartbeat
 
 
 def main():

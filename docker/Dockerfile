@@ -58,6 +58,10 @@ RUN mkdir -p /opt/ros2_rust/src \
     && colcon build --event-handlers console_cohesion+ --cmake-args -DBUILD_TESTING=OFF \
     && rm -rf build log
 
+# Python linter (ruff.toml, scripts/lint.sh). Pinned so a new release can't break CI on its own.
+ARG RUFF_VERSION=0.17.5
+RUN pip install --no-cache-dir --break-system-packages "ruff==${RUFF_VERSION}"
+
 COPY check_forbidden_packages.sh entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/check_forbidden_packages.sh /usr/local/bin/entrypoint.sh \
     && check_forbidden_packages.sh

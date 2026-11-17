@@ -1,5 +1,6 @@
-from delivery_bot_bringup.stack import NODES, OPTIONAL_STAGES, select_stages, STAGES
 import pytest
+
+from delivery_bot_bringup.stack import NODES, OPTIONAL_STAGES, select_stages, STAGES
 
 
 def names(stages):

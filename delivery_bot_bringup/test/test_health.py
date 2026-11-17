@@ -1,6 +1,7 @@
+from diagnostic_msgs.msg import DiagnosticStatus
+
 from delivery_bot_bringup.health import HealthTracker
 from delivery_bot_interfaces.msg import Heartbeat
-from diagnostic_msgs.msg import DiagnosticStatus
 
 
 def heartbeat(node, status=Heartbeat.OK, detail=''):
