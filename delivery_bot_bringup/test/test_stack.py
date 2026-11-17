@@ -38,3 +38,9 @@ def test_core_stages_can_not_be_disabled():
 def test_unknown_localization_mode_is_rejected():
     with pytest.raises(ValueError):
         select_stages('slam')
+
+
+def test_every_node_has_its_own_package():
+    for node in NODES:
+        assert node.package.startswith('delivery_bot_')
+        assert node.package != 'delivery_bot_bringup'
