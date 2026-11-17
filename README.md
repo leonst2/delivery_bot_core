@@ -1,7 +1,8 @@
 # delivery_bot_core
 
-Shared ROS 2 (Jazzy) packages for the **delivery_bot**: the robot description and the deterministic navigation
-stack (Nav2 configuration, grid-step controller, dynamic obstacle tracking).
+Shared ROS 2 (Jazzy) packages for the **delivery_bot**: the robot description and a fully self-programmed,
+deterministic navigation stack in C++, Rust and Python. It only uses ROS 2 core (see [CONTRIBUTING.md](CONTRIBUTING.md)
+for the rules and how to work on a package).
 
 This repository is the single source of the navigation logic. The same commit runs in two places:
 
@@ -12,16 +13,32 @@ This repository is the single source of the navigation logic. The same commit ru
 
 ## Packages
 
-| Package | Type | Contents |
-| --- | --- | --- |
-| `delivery_bot` | ament_cmake | URDF (V-0.2), STL meshes, `description.launch.py` (robot_state_publisher → `/tf_static`) |
-| `delivery_bot_navigation` | ament_cmake | `nav2_params.yaml`, `sim.yaml` overlay, `bringup.launch.py` |
-| `delivery_bot_grid_step` | ament_python | `grid_step_controller` node: halt → perceive → map → plan → move one cell → repeat *(stub)* |
-| `delivery_bot_perception` | ament_python | `obstacle_tracker` node: dynamic obstacle tracking from `/scan` *(stub)* |
-| `delivery_bot_rust_hello` | ament_cargo | Rust toolchain spike (#2): rclrs node, `/clock` → `/heartbeat` |
-| `delivery_bot_bringup` | ament_python | `stack.launch.py`, sim overlay, health monitor and heartbeat helper, see its [README](delivery_bot_bringup/README.md) |
-| `delivery_bot_interfaces` | ament_cmake (rosidl) | Every custom message, service and action of the stack, see its [README](delivery_bot_interfaces/README.md) |
-| `delivery_bot_interfaces_tests` | ament_cmake | C++ and Python serialisation checks for `delivery_bot_interfaces` |
+Every package exists and builds. Packages marked *stub* only publish heartbeats (or hold an empty library) until
+their card lands; each package README names its card.
+
+| Package | Lang | Contents | Card |
+| --- | --- | --- | --- |
+| `delivery_bot` | — | URDF (V-0.2) and STL meshes | |
+| `delivery_bot_interfaces` | rosidl | Every custom message, service and action, see its [README](delivery_bot_interfaces/README.md) | #3 |
+| `delivery_bot_interfaces_tests` | C++/Python | Serialisation checks for `delivery_bot_interfaces` | #3 |
+| `delivery_bot_bringup` | Python | `stack.launch.py`, parameters, sim overlay, health monitor, see its [README](delivery_bot_bringup/README.md) | #4 |
+| `delivery_bot_description_publisher` | C++ | Own URDF parser: `/robot_description`, `/tf_static`, joint-driven `/tf` *(stub)* | #5 |
+| `delivery_bot_viz` | Python | Marker topics and an RViz configuration *(stub)* | #6 |
+| `delivery_bot_odometry` | Rust | Wheel + IMU odometry with own EKF *(stub)* | #7 |
+| `delivery_bot_localization` | Rust | Particle-filter localization (MCL) *(stub)* | #8 |
+| `delivery_bot_scan_filter` | C++ | Cleaned scans and obstacle points *(stub)* | #9 |
+| `delivery_bot_stereo` | C++ | Stereo disparity and 3D points *(stub)* | #10 |
+| `delivery_bot_tracker` | Rust | Dynamic obstacle tracking with prediction *(stub)* | #11 |
+| `delivery_bot_map_server` | Python | Own map format, latched `/map`, `LoadMap` *(stub)* | #12 |
+| `delivery_bot_occupancy` | C++ | Occupancy-grid mapping *(stub)* | #13 |
+| `delivery_bot_costmap` | C++ | Layered global and local costmaps *(stub)* | #14 |
+| `delivery_bot_collision` | C++ | Footprint, inflation and collision-checking library *(stub)* | #15 |
+| `delivery_bot_geometry` | C++ | SE(2), Reeds-Shepp/Dubins and Ackermann primitives library *(stub)* | #16 |
+| `delivery_bot_planner` | C++ | Hybrid-A* planner and path post-processing *(stub)* | #17, #18 |
+| `delivery_bot_step_controller` | Rust | Follows one `step_size` arc and stops *(stub)* | #19 |
+| `delivery_bot_safety` | C++ | Emergency stop, command watchdog and gating *(stub)* | #20 |
+| `delivery_bot_executive` | Python | Grid-step executive and mission manager *(stub)* | #21, #22 |
+| `delivery_bot_evaluation` | Python | Metrics, scenarios, benchmarks, reports, record/replay *(stub)* | #23–#27 |
 
 The description package is called `delivery_bot`, not `delivery_bot_description`, because the URDF refers to its
 meshes as `package://delivery_bot/meshes/...`. The Unity simulation imports the same URDF file. Its copy in
@@ -37,39 +54,35 @@ ros2 launch delivery_bot_bringup stack.launch.py              # physical robot
 `sim:=true` only layers `delivery_bot_bringup/params/sim.yaml` on top of the shared parameters. Simulation differences
 are limited to that overlay. Never fork the navigation logic for the simulation.
 
-The older `delivery_bot_navigation/bringup.launch.py` stays until #1 folds it into `delivery_bot_bringup`. It needs
-`robot_state_publisher`, so it only runs in the legacy CI job, not in the dev image.
+## Build, test and lint
 
-## Build
+Everything runs in the development image (below). With the repo checked out in `<ws>/src/delivery_bot_core`:
 
 ```bash
-mkdir -p ws/src && cd ws/src && git clone https://github.com/leonst2/delivery_bot_core.git && cd ..
-source /opt/ros/jazzy/setup.bash
-rosdep install --from-paths src --ignore-src -y
-colcon build && colcon test && colcon test-result --verbose
+docker build -t delivery_bot_core_dev:jazzy docker/
+docker run --rm -it -v "$PWD/../..:/ws" -w /ws delivery_bot_core_dev:jazzy
+# inside:
+colcon build --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+colcon test && colcon test-result --verbose
+source install/setup.bash
+src/delivery_bot_core/scripts/lint.sh     # ruff, clang-format, clang-tidy, cargo fmt, clippy
 ```
 
-CI (`.github/workflows/build.yml`) runs the same steps in the `ros:jazzy` container on every push. That job is
-legacy: it still installs `robot_state_publisher` for the old launch smoke test, until #5 replaces it.
+CI (`.github/workflows/dev-image.yml`) does the same on every push and pull request: it builds the image, builds and
+tests every package (gtest, pytest, `cargo test`), starts the whole stack with `sim:=true` and waits until every node
+reports OK, then runs `scripts/lint.sh`. Any failure fails the build.
 
 ## Development image
 
 `docker/Dockerfile` is the build environment for this repo and its consumers: ROS 2 Jazzy **ros-core** plus the
 C++, Python and **Rust** toolchains. It's based on ros-core instead of ros-base on purpose: ros-base ships
-`robot_state_publisher` and `kdl_parser`, and the image build fails if any forbidden package (Nav2,
-slam_toolbox, AMCL, map_server, robot_state_publisher, kdl_parser) is present
+`robot_state_publisher` and `kdl_parser`, and the image build fails if any forbidden package is present
 (`docker/check_forbidden_packages.sh`). Add dependencies to the Dockerfile; don't run `rosdep install` in it.
-
-```bash
-docker build -t delivery_bot_core_dev:jazzy docker/
-docker run --rm -it -v "$PWD/..:/ws/src" delivery_bot_core_dev:jazzy   # repo checked out in <ws>/src/
-# inside: colcon build && colcon test && colcon test-result --verbose
-```
 
 | Toolchain | Contents |
 | --- | --- |
 | C++ | build-essential, cmake, gtest (`ament_cmake_gtest`), Eigen, tinyxml2, clang-format, clang-tidy |
-| Python | colcon, pytest (`ament_cmake_pytest`), numpy |
+| Python | colcon, pytest (`ament_cmake_pytest`), numpy, ruff |
 | Rust | Rust 1.98.0 (rustfmt, clippy), `cargo-ament-build` 0.1.11, `colcon-cargo` 0.2.0, `colcon-ros-cargo` (pinned commit), libclang |
 | ROS extras | `tf2_msgs`, `rosbag2`, ros2 CLI |
 
@@ -78,10 +91,9 @@ the `ros-env` crate. On Jazzy, message packages only get Rust bindings if they'r
 `rosidl_generator_rs` is installed. So the image builds an overlay in `/opt/ros2_rust` with the generator and the
 standard interfaces rebuilt from `docker/ros2_rust_jazzy.repos` (pinned commits). Interface packages in this
 workspace (e.g. `delivery_bot_interfaces`) get Rust bindings automatically. `scripts/setup_rust.sh` sets up the same
-on a native Ubuntu 24.04 machine. CI: `.github/workflows/dev-image.yml` builds the image, builds and tests the
-workspace in it, and runs `cargo fmt --check`, `clippy -D warnings` and `cargo test` for every Rust package.
+on a native Ubuntu 24.04 machine.
 
-Every Rust package needs a `build.rs` like the one in `delivery_bot_rust_hello`. rclrs's build script doesn't rerun when
+Every Rust package needs a `build.rs` like the one in `delivery_bot_odometry`. rclrs's build script doesn't rerun when
 `AMENT_PREFIX_PATH` changes, so without it a new interface package fails to link in a cached workspace.
 
 **Fallback if native Rust nodes ever break** (e.g. an rclrs/Jazzy incompatibility): keep the algorithms in a plain
@@ -95,6 +107,11 @@ would then implement crate + wrapper instead of an rclrs node.
 git submodule update --remote ros2_ws/src/delivery_bot_core
 git add ros2_ws/src/delivery_bot_core && git commit -m "Bump delivery_bot_core"
 ```
+
+## History
+
+Until November 2026 this repo held a Nav2 configuration with Python stubs for the grid-step controller and the
+obstacle tracker. #1 replaced it with the self-programmed stack above.
 
 ## License
 
