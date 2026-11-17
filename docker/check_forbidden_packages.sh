@@ -9,7 +9,8 @@ for overlay in /opt/ros2_rust/install /opt/ros_tcp_endpoint/install; do
 done
 set -u
 
-forbidden='^(nav2_.*|navigation2|slam_toolbox|amcl|.*map_server|robot_state_publisher|kdl_parser)$'
+# Exact names, so our own delivery_bot_map_server doesn't match. Nav2's map server is covered by nav2_.*.
+forbidden='^(nav2_.*|navigation2|slam_toolbox|amcl|map_server|robot_state_publisher|kdl_parser)$'
 packages=$(ros2 pkg list)
 if [ -z "$packages" ]; then
   echo "ros2 pkg list returned nothing; can't check for forbidden packages." >&2
