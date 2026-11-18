@@ -1,3 +1,5 @@
+from glob import glob
+
 from setuptools import find_packages, setup
 
 package_name = 'delivery_bot_map_server'
@@ -9,6 +11,9 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        # Static maps (map.pgm + map.yaml), exported from delivery_bot_sim (Tools > City > Export Occupancy Map).
+        ('share/' + package_name + '/maps/city', sorted(glob('maps/city/*.*'))),
+        ('share/' + package_name + '/maps/city/tiles', sorted(glob('maps/city/tiles/*.*'))),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
