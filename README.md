@@ -28,7 +28,7 @@ their card lands; each package README names its card.
 | `delivery_bot_localization` | Rust | Particle-filter localization (MCL) *(stub)* | #8 |
 | `delivery_bot_scan_filter` | C++ | Cleaned scans and obstacle points *(stub)* | #9 |
 | `delivery_bot_stereo` | C++ | Stereo disparity and 3D points *(stub)* | #10 |
-| `delivery_bot_tracker` | Rust | Dynamic obstacle tracking with prediction *(stub)* | #11 |
+| `delivery_bot_tracker` | Rust | Dynamic obstacle tracking with prediction, see its [README](delivery_bot_tracker/README.md) | #11 |
 | `delivery_bot_map_server` | Python | Own map format, latched `/map`, `LoadMap` *(stub)* | #12 |
 | `delivery_bot_occupancy` | C++ | Occupancy-grid mapping *(stub)* | #13 |
 | `delivery_bot_costmap` | C++ | Layered global and local costmaps *(stub)* | #14 |
@@ -89,7 +89,8 @@ C++, Python and **Rust** toolchains. It's based on ros-core instead of ros-base 
 **Rust nodes** use [rclrs](https://github.com/ros2-rust/ros2_rust) 0.8 from crates.io and get message types through
 the `ros-env` crate. On Jazzy, message packages only get Rust bindings if they're built while
 `rosidl_generator_rs` is installed. So the image builds an overlay in `/opt/ros2_rust` with the generator and the
-standard interfaces rebuilt from `docker/ros2_rust_jazzy.repos` (pinned commits). Interface packages in this
+standard interfaces rebuilt from `docker/ros2_rust_jazzy.repos` (pinned commits), plus `tf2_msgs` so Rust nodes can
+use `/tf` (the rest of geometry2 is removed before the build). Interface packages in this
 workspace (e.g. `delivery_bot_interfaces`) get Rust bindings automatically. `scripts/setup_rust.sh` sets up the same
 on a native Ubuntu 24.04 machine.
 
