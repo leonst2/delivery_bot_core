@@ -28,6 +28,8 @@ pip install --user --break-system-packages \
 # Overlay with rosidl_generator_rs and the standard interfaces rebuilt with Rust bindings.
 mkdir -p "$OVERLAY/src"
 vcs import --shallow "$OVERLAY/src" < "$REPOS"
+# From geometry2 only tf2_msgs is kept (as in docker/Dockerfile): the tf2 C++ packages would pull in KDL.
+find "$OVERLAY/src/ros2/geometry2" -mindepth 1 -maxdepth 1 ! -name tf2_msgs -exec rm -rf {} +
 source /opt/ros/jazzy/setup.bash
 (cd "$OVERLAY" && colcon build --cmake-args -DBUILD_TESTING=OFF)
 
