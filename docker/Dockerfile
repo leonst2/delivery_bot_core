@@ -50,10 +50,12 @@ RUN pip install --no-cache-dir --break-system-packages \
         "git+https://github.com/colcon/colcon-ros-cargo.git@${COLCON_ROS_CARGO_REF}"
 
 # ros2_rust overlay: rosidl_generator_rs + standard interfaces rebuilt with Rust bindings (pinned commits).
+# From geometry2 only tf2_msgs is kept, so Rust nodes can use /tf; the tf2 C++ packages would pull in KDL.
 COPY ros2_rust_jazzy.repos /opt/ros2_rust/ros2_rust_jazzy.repos
 RUN mkdir -p /opt/ros2_rust/src \
     && cd /opt/ros2_rust \
     && vcs import --shallow src < ros2_rust_jazzy.repos \
+    && find src/ros2/geometry2 -mindepth 1 -maxdepth 1 ! -name tf2_msgs -exec rm -rf {} + \
     && . /opt/ros/jazzy/setup.sh \
     && colcon build --event-handlers console_cohesion+ --cmake-args -DBUILD_TESTING=OFF \
     && rm -rf build log
