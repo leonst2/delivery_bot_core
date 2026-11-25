@@ -15,8 +15,8 @@ pub struct Params {
     pub max_cluster_extent: f64,
     /// m, points this close to an occupied map cell are static.
     pub static_margin: f64,
-    /// m, while an object's heading is unknown, its centre is taken this far behind its point nearest to the robot
-    /// (the LiDAR sees only the near surface). The nearest point is steadier than the centroid of a sparse cluster.
+    /// m, while an object's heading is unknown, its centre is taken this far behind its nearest surface, on the
+    /// bearing of its centroid (the LiDAR sees only the near surface).
     pub surface_offset: f64,
     /// m, footprint of a tracked object, used to find its centre from the visible side once its heading is known.
     /// Defaults: a cyclist (bike plus rider).

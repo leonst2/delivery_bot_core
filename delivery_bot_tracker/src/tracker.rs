@@ -47,6 +47,8 @@ struct Track {
     misses: u32,
     confirmed: bool,
     moving: bool,
+    /// Whether the last cluster measurement came from the footprint fit (else from the near surface).
+    fitted: bool,
     radius: f64,
 }
 
@@ -74,20 +76,29 @@ pub struct Tracker {
     last_stamp: Option<i64>,
 }
 
-/// The cluster point nearest to the sensor, moved `offset` farther away along its bearing.
-fn behind_nearest_point(cluster: &Cluster, sensor: [f64; 2], offset: f64) -> [f64; 2] {
-    let mut nearest = cluster.points[0];
-    for q in &cluster.points[1..] {
-        if distance(*q, sensor) < distance(nearest, sensor) {
-            nearest = *q;
-        }
-    }
-    let (dx, dy) = (nearest[0] - sensor[0], nearest[1] - sensor[1]);
+/// Centre estimate while the heading is unknown: along the bearing of the centroid, `offset` behind the nearest
+/// surface on that bearing. The bearing follows an object that slides sideways (the nearest point of a long side seen
+/// broadside doesn't), and the depth doesn't jump when a sparse point on a grazing side comes or goes (the
+/// centroid's does).
+fn behind_near_surface(cluster: &Cluster, sensor: [f64; 2], offset: f64) -> [f64; 2] {
+    let (dx, dy) = (
+        cluster.centroid[0] - sensor[0],
+        cluster.centroid[1] - sensor[1],
+    );
     let d = dx.hypot(dy);
     if d < 1e-9 {
-        return nearest;
+        return cluster.centroid;
     }
-    [nearest[0] + dx / d * offset, nearest[1] + dy / d * offset]
+    let bearing = [dx / d, dy / d];
+    let depth = cluster
+        .points
+        .iter()
+        .map(|q| (q[0] - sensor[0]) * bearing[0] + (q[1] - sensor[1]) * bearing[1])
+        .fold(f64::INFINITY, f64::min);
+    [
+        sensor[0] + bearing[0] * (depth + offset),
+        sensor[1] + bearing[1] * (depth + offset),
+    ]
 }
 
 /// Centre of a `length` x `width` box with the given heading whose visible side produced `points`. Along each box
@@ -169,11 +180,45 @@ impl Tracker {
                         p.object_length,
                         p.object_width,
                     ),
-                    None => behind_nearest_point(cluster, sensor, p.surface_offset),
+                    None => behind_near_surface(cluster, sensor, p.surface_offset),
                 };
                 (z, p.measurement_noise)
             }
         }
+    }
+
+    /// When a track's cluster measurement switches between the near-surface estimate and the footprint fit, the two
+    /// centres for the same points can be half a metre apart. Returns the new model and the shift that moves the
+    /// track onto it, so the switch doesn't show up as motion.
+    fn model_switch(
+        &self,
+        track: &Track,
+        detection: &Detection,
+        sensor: [f64; 2],
+    ) -> Option<(bool, [f64; 2])> {
+        let Detection::Cluster(cluster) = detection else {
+            return None;
+        };
+        let p = &self.params;
+        let fitted = track.heading(p).is_some();
+        if fitted == track.fitted {
+            return None;
+        }
+        let v = track.kf.velocity();
+        let fit = box_center(
+            &cluster.points,
+            v[1].atan2(v[0]),
+            sensor,
+            p.object_length,
+            p.object_width,
+        );
+        let surface = behind_near_surface(cluster, sensor, p.surface_offset);
+        let (to, from) = if fitted {
+            (fit, surface)
+        } else {
+            (surface, fit)
+        };
+        Some((fitted, [to[0] - from[0], to[1] - from[1]]))
     }
 
     /// Processes the detections of one sensor message. `sensor` is the robot position in `map`. `is_cycle` marks a
@@ -230,7 +275,12 @@ impl Tracker {
             let Some(column) = *column else { continue };
             used[column] = true;
             let (z, noise) = self.measurement(Some(&self.tracks[row]), &detections[column], sensor);
+            let switch = self.model_switch(&self.tracks[row], &detections[column], sensor);
             let track = &mut self.tracks[row];
+            if let Some((fitted, shift)) = switch {
+                track.kf.shift(shift);
+                track.fitted = fitted;
+            }
             track.kf.update(z, noise);
             track.updates += 1;
             track.hit_this_cycle = true;
@@ -287,6 +337,7 @@ impl Tracker {
                 misses: 0,
                 confirmed: false,
                 moving: false,
+                fitted: false,
                 radius,
             });
             self.next_id = self.next_id.wrapping_add(1).max(1);

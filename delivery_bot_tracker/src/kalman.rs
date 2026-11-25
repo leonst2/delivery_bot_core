@@ -209,6 +209,18 @@ impl Imm {
         self.combined.position()
     }
 
+    /// Moves the position estimate of every model, leaving velocities and covariances alone.
+    pub fn shift(&mut self, delta: [f64; 2]) {
+        for kf in self
+            .models
+            .iter_mut()
+            .chain(std::iter::once(&mut self.combined))
+        {
+            kf.x[0] += delta[0];
+            kf.x[1] += delta[1];
+        }
+    }
+
     pub fn velocity(&self) -> [f64; 2] {
         self.combined.velocity()
     }
