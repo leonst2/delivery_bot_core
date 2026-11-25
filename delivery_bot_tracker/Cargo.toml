@@ -7,6 +7,10 @@ description = "Dynamic obstacle detection and tracking with prediction (delivery
 license = "LicenseRef-Proprietary"
 publish = false
 
+[lib]
+name = "delivery_bot_tracker"
+path = "src/lib.rs"
+
 [[bin]]
 name = "tracker"
 path = "src/main.rs"
