@@ -13,6 +13,10 @@ pub mod static_map;
 pub mod tf;
 pub mod tracker;
 
+#[cfg(test)]
+mod scenarios;
+#[cfg(test)]
+mod synth;
 
 pub use geometry::Pose2;
 pub use params::Params;
