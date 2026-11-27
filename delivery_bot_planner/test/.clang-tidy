@@ -1,0 +1,4 @@
+# Tests: gtest's assertion macros inflate the cognitive complexity of every TEST body.
+InheritParentConfig: true
+Checks: >
+  -readability-function-cognitive-complexity
