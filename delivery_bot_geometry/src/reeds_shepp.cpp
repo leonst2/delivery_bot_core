@@ -86,8 +86,14 @@ std::optional<Tuv> lp_rm_l(double x, double y, double phi)
   return std::nullopt;
 }
 
-// Helper of 8.7 / 8.8.
-std::pair<double, double> tau_omega(double u, double v, double xi, double eta, double phi)
+struct TauOmega
+{
+  double tau{0.0};
+  double omega{0.0};
+};
+
+// Helper of 8.7 / 8.8. Returns a struct rather than a std::pair: GCC notes an ABI change for pairs of doubles.
+TauOmega tau_omega(double u, double v, double xi, double eta, double phi)
 {
   const double delta = normalize_angle(u - v);
   const double a = std::sin(u) - std::sin(delta);
