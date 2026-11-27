@@ -7,6 +7,7 @@
 #include "delivery_bot_geometry/angle.hpp"
 #include "delivery_bot_geometry/dubins.hpp"
 #include "delivery_bot_geometry/path.hpp"
+#include "delivery_bot_geometry/primitives.hpp"
 #include "delivery_bot_geometry/reeds_shepp.hpp"
 #include "delivery_bot_geometry/se2.hpp"
 
