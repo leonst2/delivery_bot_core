@@ -16,6 +16,10 @@ namespace
 
 constexpr double kStraightCurvature = 1e-9;  // below this a segment is treated as straight
 constexpr double kCentreDistance = 1e-12;    // query point on the arc centre: every arc point is equally far
+// A later candidate only wins if it is closer by more than this. Equal distances (the same point on two laps of an
+// arc, both ends of a symmetric path) differ only by rounding, which varies between CPUs; without the margin the
+// "smallest s wins" rule would depend on the last bit.
+constexpr double kTieTolerance = 1e-12;
 
 // Candidate local arc lengths (from the segment start, >= 0) of the closest point on one segment, within
 // [lo, hi]. Always contains lo and hi; the result is sorted ascending.
@@ -81,7 +85,7 @@ ClosestPoint closest_point(const Path & path, const Eigen::Vector2d & point, dou
     for (const double local : segment_candidates(start, seg, point, lo - seg_start, hi - seg_start)) {
       const Pose2 pose = advance(start, seg.curvature, seg.direction() * local);
       const double d = distance_to(pose);
-      if (d < best.distance) {
+      if (d < best.distance - kTieTolerance) {
         best = {seg_start + local, pose, d};
       }
     }

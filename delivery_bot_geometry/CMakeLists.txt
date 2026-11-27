@@ -23,8 +23,12 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC Eigen3::Eigen)
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+# No fused multiply-add contraction: GCC contracts a * b + c by default on ARM64 but not on x86_64, which changes the
+# last bits of every result. Planner paths must be identical on the robot, in the sim and in CI.
+set(DELIVERY_BOT_GEOMETRY_FP_FLAGS "")
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+  set(DELIVERY_BOT_GEOMETRY_FP_FLAGS -ffp-contract=off)
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic ${DELIVERY_BOT_GEOMETRY_FP_FLAGS})
 endif()
 
 install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
@@ -50,6 +54,7 @@ if(BUILD_TESTING)
     test/test_vectors.cpp
   )
   target_link_libraries(test_${PROJECT_NAME} ${PROJECT_NAME})
+  target_compile_options(test_${PROJECT_NAME} PRIVATE ${DELIVERY_BOT_GEOMETRY_FP_FLAGS})
   # Shared with the Rust port (rust/tests/vectors.rs).
   target_compile_definitions(test_${PROJECT_NAME} PRIVATE
     ARC_VECTORS_FILE="${CMAKE_CURRENT_SOURCE_DIR}/test/vectors/arc_vectors.txt")
@@ -57,6 +62,7 @@ if(BUILD_TESTING)
   # Writes test/vectors/arc_vectors.txt (see the file header). Built with the tests, not installed.
   add_executable(generate_arc_vectors test/generate_arc_vectors.cpp)
   target_link_libraries(generate_arc_vectors ${PROJECT_NAME})
+  target_compile_options(generate_arc_vectors PRIVATE ${DELIVERY_BOT_GEOMETRY_FP_FLAGS})
 endif()
 
 ament_package()

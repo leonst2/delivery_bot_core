@@ -154,6 +154,10 @@ TEST(Arc, TiesGoToTheSmallestS)
   const dbg::Path laps({kRadius, 0.0, dbg::kPi / 2.0}, {dbg::Segment::left(dbg::kTwoPi * kRadius * 1.3, kRadius)});
   const auto c = dbg::closest_point(laps, {0.0, kRadius});
   EXPECT_NEAR(c.s, dbg::kPi / 2.0 * kRadius, 1e-9);
+  // The same point on two laps is an exact tie, decided only by rounding; it must still go to the first lap on every
+  // CPU (this case picked the second lap on ARM64 with fused multiply-adds and the first one on x86_64).
+  const dbg::Path overlap({-1.0, 0.0, 1.0}, {dbg::Segment::left(dbg::kTwoPi * kRadius * 1.3, kRadius)});
+  EXPECT_LT(dbg::closest_point(overlap, {5.3478002895817873, 2.0045647293698532}).s, dbg::kTwoPi * kRadius);
   // ... unless the window starts after it.
   const auto later = dbg::closest_point(laps, {0.0, kRadius}, dbg::kPi * kRadius);
   EXPECT_NEAR(later.s, (dbg::kTwoPi + dbg::kPi / 2.0) * kRadius, 1e-9);

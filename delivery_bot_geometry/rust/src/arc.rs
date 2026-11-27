@@ -6,6 +6,9 @@ use crate::se2::Pose2;
 
 const STRAIGHT_CURVATURE: f64 = 1e-9; // below this a segment is treated as straight
 const CENTRE_DISTANCE: f64 = 1e-12; // query point on the arc centre: every arc point is equally far
+/// A later candidate only wins if it is closer by more than this, so ties go to the smallest s regardless of rounding
+/// (same as `kTieTolerance` in arc.cpp).
+const TIE_TOLERANCE: f64 = 1e-12;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct ClosestPoint {
@@ -106,7 +109,7 @@ pub fn closest_point(path: &Path, point: (f64, f64), s_min: f64, s_max: f64) -> 
         for local in segment_candidates(start, seg, point, lo - seg_start, hi - seg_start) {
             let pose = advance(start, seg.curvature, f64::from(seg.direction()) * local);
             let d = distance_to(&pose);
-            if d < best.distance {
+            if d < best.distance - TIE_TOLERANCE {
                 best = ClosestPoint {
                     s: seg_start + local,
                     pose,
