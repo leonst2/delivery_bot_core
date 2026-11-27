@@ -14,6 +14,7 @@ add_library(${PROJECT_NAME} SHARED
   src/dubins.cpp
   src/reeds_shepp.cpp
   src/primitives.cpp
+  src/arc.cpp
 )
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -45,6 +46,7 @@ if(BUILD_TESTING)
     test/test_dubins.cpp
     test/test_reeds_shepp.cpp
     test/test_primitives.cpp
+    test/test_arc.cpp
   )
   target_link_libraries(test_${PROJECT_NAME} ${PROJECT_NAME})
 endif()
