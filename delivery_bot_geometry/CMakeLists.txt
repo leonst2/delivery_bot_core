@@ -47,8 +47,16 @@ if(BUILD_TESTING)
     test/test_reeds_shepp.cpp
     test/test_primitives.cpp
     test/test_arc.cpp
+    test/test_vectors.cpp
   )
   target_link_libraries(test_${PROJECT_NAME} ${PROJECT_NAME})
+  # Shared with the Rust port (rust/tests/vectors.rs).
+  target_compile_definitions(test_${PROJECT_NAME} PRIVATE
+    ARC_VECTORS_FILE="${CMAKE_CURRENT_SOURCE_DIR}/test/vectors/arc_vectors.txt")
+
+  # Writes test/vectors/arc_vectors.txt (see the file header). Built with the tests, not installed.
+  add_executable(generate_arc_vectors test/generate_arc_vectors.cpp)
+  target_link_libraries(generate_arc_vectors ${PROJECT_NAME})
 endif()
 
 ament_package()
