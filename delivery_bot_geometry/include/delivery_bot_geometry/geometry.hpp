@@ -1,11 +1,10 @@
-// SE(2) geometry, Reeds-Shepp and Dubins curves, Ackermann motion primitives (delivery_bot_core#16).
-// Stub: the card adds the types and functions. Link against delivery_bot_geometry::delivery_bot_geometry.
+// Umbrella header of delivery_bot_geometry (delivery_bot_core#16): SE(2) geometry, Reeds-Shepp and Dubins curves,
+// Ackermann motion primitives. Link against delivery_bot_geometry::delivery_bot_geometry.
 
-#ifndef DELIVERY_BOT_GEOMETRY__GEOMETRY_HPP_
-#define DELIVERY_BOT_GEOMETRY__GEOMETRY_HPP_
+#ifndef DELIVERY_BOT_GEOMETRY_GEOMETRY_HPP_
+#define DELIVERY_BOT_GEOMETRY_GEOMETRY_HPP_
 
-namespace delivery_bot_geometry
-{
-}  // namespace delivery_bot_geometry
+#include "delivery_bot_geometry/angle.hpp"
+#include "delivery_bot_geometry/se2.hpp"
 
-#endif  // DELIVERY_BOT_GEOMETRY__GEOMETRY_HPP_
+#endif  // DELIVERY_BOT_GEOMETRY_GEOMETRY_HPP_
