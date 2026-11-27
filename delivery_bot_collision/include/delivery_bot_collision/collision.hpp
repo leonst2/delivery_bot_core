@@ -5,6 +5,7 @@
 #define DELIVERY_BOT_COLLISION_COLLISION_HPP_
 
 #include "delivery_bot_collision/distance_field.hpp"
+#include "delivery_bot_collision/footprint.hpp"
 #include "delivery_bot_collision/grid.hpp"
 
 #endif  // DELIVERY_BOT_COLLISION_COLLISION_HPP_
