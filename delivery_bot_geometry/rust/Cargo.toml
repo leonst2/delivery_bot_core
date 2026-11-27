@@ -1,0 +1,12 @@
+[package]
+name = "delivery_bot_geometry"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+description = "Rust port of the delivery_bot_geometry arc utilities (delivery_bot_core#16) for the step controller"
+license = "LicenseRef-Proprietary"
+publish = false
+
+# Plain library without ROS or other dependencies. Not a colcon package (COLCON_IGNORE): Rust nodes depend on it
+# with `delivery_bot_geometry = { path = "../delivery_bot_geometry/rust" }`.
+[dependencies]
