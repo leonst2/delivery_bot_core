@@ -10,6 +10,7 @@
 #define DELIVERY_BOT_GEOMETRY_PATH_HPP_
 
 #include <cstddef>
+#include <string>
 #include <vector>
 
 #include "delivery_bot_geometry/se2.hpp"
@@ -83,6 +84,14 @@ private:
   std::vector<Segment> segments_;
   std::vector<double> cumulative_s_{0.0};      // size segments + 1
   std::vector<Pose2> segment_start_{Pose2{}};  // size segments + 1, the last entry is the end pose
+};
+
+/// One solution of a curve family (Dubins, Reeds-Shepp): its word (L = left, R = right, S = straight, one letter per
+/// segment of the base word, before zero-length segments are dropped) and the path.
+struct CurveCandidate
+{
+  std::string word;
+  Path path;
 };
 
 }  // namespace delivery_bot_geometry
