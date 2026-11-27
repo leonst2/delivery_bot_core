@@ -25,6 +25,10 @@ std::vector<CurveCandidate> reeds_shepp_all(const Pose2 & start, const Pose2 & g
 /// deterministic.
 CurveCandidate reeds_shepp_shortest(const Pose2 & start, const Pose2 & goal, double radius);
 
+/// Length of reeds_shepp_shortest(start, goal, radius).path without building any path: no allocation, for search
+/// heuristics.
+double reeds_shepp_length(const Pose2 & start, const Pose2 & goal, double radius);
+
 }  // namespace delivery_bot_geometry
 
 #endif  // DELIVERY_BOT_GEOMETRY_REEDS_SHEPP_HPP_
