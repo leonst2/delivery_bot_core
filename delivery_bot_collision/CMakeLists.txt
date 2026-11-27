@@ -54,6 +54,7 @@ if(BUILD_TESTING)
     test/test_inflation.cpp
     test/test_collision_checker.cpp
     test/test_swept.cpp
+    test/test_performance.cpp
   )
   target_link_libraries(test_${PROJECT_NAME} ${PROJECT_NAME})
   target_compile_options(test_${PROJECT_NAME} PRIVATE ${DELIVERY_BOT_COLLISION_FP_FLAGS})

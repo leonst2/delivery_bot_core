@@ -8,6 +8,7 @@
 #ifndef DELIVERY_BOT_COLLISION_COLLISION_CHECKER_HPP_
 #define DELIVERY_BOT_COLLISION_COLLISION_CHECKER_HPP_
 
+#include <cstddef>
 #include <vector>
 
 #include "delivery_bot_collision/distance_field.hpp"
@@ -18,6 +19,9 @@
 
 namespace delivery_bot_collision
 {
+
+/// Most vertices a footprint may have (the padded sweep footprint of a rectangle has four).
+constexpr std::size_t kMaxFootprintVertices = 16;
 
 struct CheckerParams
 {
@@ -30,7 +34,8 @@ class CollisionChecker
 {
 public:
   /// `footprint` is used as given (pad it first, e.g. FootprintParams::make()). Computes the distance field once.
-  /// Throws std::invalid_argument for cover_circles < 1 or sweep_step <= 0.
+  /// Throws std::invalid_argument for more than kMaxFootprintVertices vertices, cover_circles < 1 or
+  /// sweep_step <= 0.
   CollisionChecker(Grid grid, Footprint footprint, CheckerParams params = {});
 
   [[nodiscard]] const Grid & grid() const { return grid_; }

@@ -1,6 +1,7 @@
 #include "delivery_bot_collision/collision_checker.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
 #include <limits>
@@ -16,45 +17,55 @@ namespace dbg = delivery_bot_geometry;
 namespace
 {
 
-// The footprint at a pose in world coordinates, with what the separating-axis test needs per edge.
+// The footprint at a pose in world coordinates, with what the separating-axis test needs per edge. Fixed-size
+// arrays: the exact check runs millions of times per second and must not allocate.
 struct WorldPolygon
 {
-  std::vector<Eigen::Vector2d> vertices;
-  std::vector<Eigen::Vector2d> normals;  // outward unit normal of edge i (vertex i -> i + 1)
-  std::vector<double> lo;                // min over vertices of normal . v
-  std::vector<double> hi;                // normal . v on the edge (the max)
-  Eigen::Vector2d min_corner{0.0, 0.0};
-  Eigen::Vector2d max_corner{0.0, 0.0};
+  std::size_t count{0};
+  std::array<double, kMaxFootprintVertices> vx{};
+  std::array<double, kMaxFootprintVertices> vy{};
+  std::array<double, kMaxFootprintVertices> nx{};  // outward unit normal of edge i (vertex i -> i + 1)
+  std::array<double, kMaxFootprintVertices> ny{};
+  std::array<double, kMaxFootprintVertices> lo{};  // min over vertices of normal . v
+  std::array<double, kMaxFootprintVertices> hi{};  // normal . v on the edge (the max)
+  double min_x{0.0};
+  double min_y{0.0};
+  double max_x{0.0};
+  double max_y{0.0};
 };
 
 WorldPolygon place(const Footprint & footprint, const dbg::Pose2 & pose)
 {
   WorldPolygon w;
   const auto & local = footprint.vertices();
-  const std::size_t n = local.size();
-  w.vertices.reserve(n);
-  for (const auto & v : local) {
-    w.vertices.push_back(pose.transform(v));
+  w.count = local.size();
+  const double c = std::cos(pose.yaw);
+  const double s = std::sin(pose.yaw);
+  for (std::size_t i = 0; i < w.count; ++i) {
+    w.vx[i] = pose.x + c * local[i].x() - s * local[i].y();
+    w.vy[i] = pose.y + s * local[i].x() + c * local[i].y();
   }
-  w.min_corner = w.vertices.front();
-  w.max_corner = w.vertices.front();
-  for (const auto & v : w.vertices) {
-    w.min_corner = w.min_corner.cwiseMin(v);
-    w.max_corner = w.max_corner.cwiseMax(v);
+  w.min_x = w.max_x = w.vx[0];
+  w.min_y = w.max_y = w.vy[0];
+  for (std::size_t i = 1; i < w.count; ++i) {
+    w.min_x = std::min(w.min_x, w.vx[i]);
+    w.max_x = std::max(w.max_x, w.vx[i]);
+    w.min_y = std::min(w.min_y, w.vy[i]);
+    w.max_y = std::max(w.max_y, w.vy[i]);
   }
-  w.normals.reserve(n);
-  w.lo.reserve(n);
-  w.hi.reserve(n);
-  for (std::size_t i = 0; i < n; ++i) {
-    const Eigen::Vector2d t = (w.vertices[(i + 1) % n] - w.vertices[i]).normalized();
-    const Eigen::Vector2d normal{t.y(), -t.x()};
-    double lo = normal.dot(w.vertices[0]);
-    for (const auto & v : w.vertices) {
-      lo = std::min(lo, normal.dot(v));
+  for (std::size_t i = 0; i < w.count; ++i) {
+    const std::size_t j = i + 1 == w.count ? 0 : i + 1;
+    const double ex = w.vx[j] - w.vx[i];
+    const double ey = w.vy[j] - w.vy[i];
+    const double len = std::hypot(ex, ey);
+    w.nx[i] = ey / len;
+    w.ny[i] = -ex / len;
+    double lo = w.nx[i] * w.vx[0] + w.ny[i] * w.vy[0];
+    for (std::size_t k = 1; k < w.count; ++k) {
+      lo = std::min(lo, w.nx[i] * w.vx[k] + w.ny[i] * w.vy[k]);
     }
-    w.normals.push_back(normal);
-    w.lo.push_back(lo);
-    w.hi.push_back(normal.dot(w.vertices[i]));
+    w.lo[i] = lo;
+    w.hi[i] = w.nx[i] * w.vx[i] + w.ny[i] * w.vy[i];
   }
   return w;
 }
@@ -63,14 +74,13 @@ WorldPolygon place(const Footprint & footprint, const dbg::Pose2 & pose)
 // separated. The square's own axes are covered by the bounding-box test.
 bool overlaps(const WorldPolygon & w, double x0, double y0, double x1, double y1)
 {
-  if (w.max_corner.x() <= x0 || w.min_corner.x() >= x1 || w.max_corner.y() <= y0 || w.min_corner.y() >= y1) {
+  if (w.max_x <= x0 || w.min_x >= x1 || w.max_y <= y0 || w.min_y >= y1) {
     return false;
   }
-  for (std::size_t i = 0; i < w.normals.size(); ++i) {
-    const Eigen::Vector2d & n = w.normals[i];
-    // Projection range of the square onto n: centre +- half extent.
-    const double centre = n.x() * (x0 + x1) / 2.0 + n.y() * (y0 + y1) / 2.0;
-    const double half = (std::abs(n.x()) * (x1 - x0) + std::abs(n.y()) * (y1 - y0)) / 2.0;
+  for (std::size_t i = 0; i < w.count; ++i) {
+    // Projection range of the square onto the edge normal: centre +- half extent.
+    const double centre = w.nx[i] * (x0 + x1) / 2.0 + w.ny[i] * (y0 + y1) / 2.0;
+    const double half = (std::abs(w.nx[i]) * (x1 - x0) + std::abs(w.ny[i]) * (y1 - y0)) / 2.0;
     if (centre - half >= w.hi[i] || centre + half <= w.lo[i]) {
       return false;
     }
@@ -87,6 +97,9 @@ CollisionChecker::CollisionChecker(Grid grid, Footprint footprint, CheckerParams
   body_{std::move(footprint), {}},
   swept_{body_.polygon, {}}
 {
+  if (body_.polygon.vertices().size() > kMaxFootprintVertices) {
+    throw std::invalid_argument("CollisionChecker: footprints are limited to kMaxFootprintVertices vertices");
+  }
   if (params_.cover_circles < 1) {
     throw std::invalid_argument("CollisionChecker: cover_circles must be >= 1");
   }
@@ -125,15 +138,15 @@ bool CollisionChecker::exact(const Footprint & polygon, const dbg::Pose2 & pose)
   const WorldPolygon w = place(polygon, pose);
   if (params_.rule.outside_is_obstacle()) {
     // A convex polygon leaves the (convex) map rectangle iff one of its vertices does.
-    for (const auto & v : w.vertices) {
-      if (!grid_.contains_world(v.x(), v.y())) {
+    for (std::size_t i = 0; i < w.count; ++i) {
+      if (!grid_.contains_world(w.vx[i], w.vy[i])) {
         return true;
       }
     }
   }
   const double res = grid_.resolution();
-  const CellIndex lo = grid_.world_to_cell(w.min_corner.x(), w.min_corner.y());
-  const CellIndex hi = grid_.world_to_cell(w.max_corner.x(), w.max_corner.y());
+  const CellIndex lo = grid_.world_to_cell(w.min_x, w.min_y);
+  const CellIndex hi = grid_.world_to_cell(w.max_x, w.max_y);
   const int x0 = std::max(lo.x, 0);
   const int y0 = std::max(lo.y, 0);
   const int x1 = std::min(hi.x, grid_.width() - 1);
