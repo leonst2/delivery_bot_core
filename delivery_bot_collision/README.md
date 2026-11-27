@@ -77,6 +77,11 @@ area is within `sweep_step / 2` of a sample, so the padded samples cover it: **n
 ones. The price is up to 2.5 cm of extra margin in tight squeezes. Without that padding, the adversarial tests below
 fail (a footprint corner clips a cell between samples).
 
+That margin would also trap a robot that stands closer than 2.5 cm to an obstacle: every motion out of its pose would
+collide. `SweepRefine {start, end}` adds samples that halve the gap step by step towards the start and/or end of a
+segment (or path), each padded by half the movement to its neighbours, down to 0.4 mm at the end pose itself. Still
+conservative. The planner refines the robot's own pose and the goal.
+
 ## Tests
 
 `colcon test --packages-select delivery_bot_collision`. All tests use fixed seeds.
