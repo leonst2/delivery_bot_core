@@ -22,6 +22,7 @@ endif()
 # The search itself, without ROS: tested on its own.
 add_library(planner_core SHARED
   src/heuristic.cpp
+  src/hybrid_astar.cpp
 )
 target_include_directories(planner_core PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -52,6 +53,7 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_planner_core
     test/test_heuristic.cpp
+    test/test_hybrid_astar.cpp
     TIMEOUT 300
   )
   target_link_libraries(test_planner_core planner_core)
