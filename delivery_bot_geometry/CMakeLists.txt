@@ -9,6 +9,7 @@ find_package(Eigen3 REQUIRED NO_MODULE)
 add_library(${PROJECT_NAME} SHARED
   src/angle.cpp
   src/se2.cpp
+  src/path.cpp
 )
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -36,6 +37,7 @@ if(BUILD_TESTING)
   ament_add_gtest(test_${PROJECT_NAME}
     test/test_angle.cpp
     test/test_se2.cpp
+    test/test_path.cpp
   )
   target_link_libraries(test_${PROJECT_NAME} ${PROJECT_NAME})
 endif()

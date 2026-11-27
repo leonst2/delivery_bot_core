@@ -5,6 +5,7 @@
 #define DELIVERY_BOT_GEOMETRY_GEOMETRY_HPP_
 
 #include "delivery_bot_geometry/angle.hpp"
+#include "delivery_bot_geometry/path.hpp"
 #include "delivery_bot_geometry/se2.hpp"
 
 #endif  // DELIVERY_BOT_GEOMETRY_GEOMETRY_HPP_
