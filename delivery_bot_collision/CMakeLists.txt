@@ -16,6 +16,7 @@ add_library(${PROJECT_NAME} SHARED
   src/grid.cpp
   src/distance_field.cpp
   src/footprint.cpp
+  src/inflation.cpp
 )
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -49,6 +50,7 @@ if(BUILD_TESTING)
     test/test_grid.cpp
     test/test_distance_field.cpp
     test/test_footprint.cpp
+    test/test_inflation.cpp
   )
   target_link_libraries(test_${PROJECT_NAME} ${PROJECT_NAME})
   target_compile_options(test_${PROJECT_NAME} PRIVATE ${DELIVERY_BOT_COLLISION_FP_FLAGS})
