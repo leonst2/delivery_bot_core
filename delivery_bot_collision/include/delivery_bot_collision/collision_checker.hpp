@@ -23,6 +23,24 @@ namespace delivery_bot_collision
 /// Most vertices a footprint may have (the padded sweep footprint of a rectangle has four).
 constexpr std::size_t kMaxFootprintVertices = 16;
 
+/// Swept checks: refine the sampling towards the start and/or the end of a segment (or path). Use it where the robot
+/// may be closer to an obstacle than sweep_step / 2, e.g. the pose it is standing at or a goal next to a wall.
+struct SweepRefine
+{
+  bool start{false};
+  bool end{false};
+};
+
+/// Refinement levels: level j pads the footprint by sweep_step / 2 / 2^j. Level 0 is the regular sweep padding.
+constexpr int kSweepLevels = 6;
+
+/// A pose a swept check tests, and the padding level it is tested with.
+struct SweepSample
+{
+  delivery_bot_geometry::Pose2 pose;
+  int level{0};
+};
+
 struct CheckerParams
 {
   OccupancyRule rule;
@@ -54,16 +72,23 @@ public:
 
   /// Does driving `segment` from `start` ever collide? Conservative: the poses along the segment are sampled so that
   /// no footprint point moves more than sweep_step between two samples, and each sample is checked with the footprint
-  /// padded by sweep_step / 2. The padded samples cover the whole swept area, so no obstacle is ever missed; the
-  /// price is up to sweep_step / 2 of extra margin.
+  /// padded by half the movement to its neighbours (sweep_step / 2 between regular samples). The padded samples cover
+  /// the whole swept area, so no obstacle is ever missed; the price is up to sweep_step / 2 of extra margin.
+  ///
+  /// With `refine`, extra samples halve the gap step by step towards the start and/or end, down to kSweepLevels
+  /// levels: the pose there is then checked with only sweep_step / 2^(kSweepLevels + 1) of padding (0.4 mm by
+  /// default), still conservatively. Without it, a robot standing within sweep_step / 2 of a wall can't move at all.
   [[nodiscard]] bool segment_in_collision(
-    const delivery_bot_geometry::Pose2 & start, const delivery_bot_geometry::Segment & segment) const;
-  /// segment_in_collision for every segment of the path (an empty path checks its start pose).
-  [[nodiscard]] bool path_in_collision(const delivery_bot_geometry::Path & path) const;
+    const delivery_bot_geometry::Pose2 & start, const delivery_bot_geometry::Segment & segment,
+    SweepRefine refine = {}) const;
+  /// segment_in_collision for every segment of the path, refining the path's start and end as asked (an empty path
+  /// checks its start pose).
+  [[nodiscard]] bool path_in_collision(const delivery_bot_geometry::Path & path, SweepRefine refine = {}) const;
 
-  /// The poses a swept check of `segment` from `start` tests (exposed for tests and debugging).
-  [[nodiscard]] std::vector<delivery_bot_geometry::Pose2> sweep_samples(
-    const delivery_bot_geometry::Pose2 & start, const delivery_bot_geometry::Segment & segment) const;
+  /// The poses a swept check of `segment` from `start` tests, with their padding levels (for tests and debugging).
+  [[nodiscard]] std::vector<SweepSample> sweep_samples(
+    const delivery_bot_geometry::Pose2 & start, const delivery_bot_geometry::Segment & segment,
+    SweepRefine refine = {}) const;
 
 private:
   struct Shape
@@ -80,7 +105,7 @@ private:
   CheckerParams params_;
   DistanceField field_;
   Shape body_;
-  Shape swept_;  // body padded by sweep_step / 2
+  std::vector<Shape> swept_;  // level j: body padded by sweep_step / 2 / 2^j
 };
 
 }  // namespace delivery_bot_collision

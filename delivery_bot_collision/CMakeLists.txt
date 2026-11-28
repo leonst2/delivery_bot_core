@@ -32,7 +32,8 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 set(DELIVERY_BOT_COLLISION_FP_FLAGS "")
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   set(DELIVERY_BOT_COLLISION_FP_FLAGS -ffp-contract=off)
-  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic ${DELIVERY_BOT_COLLISION_FP_FLAGS})
+  # PUBLIC: inline functions in the headers are compiled in the consumers too, which must not contract either.
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic PUBLIC ${DELIVERY_BOT_COLLISION_FP_FLAGS})
 endif()
 
 install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})

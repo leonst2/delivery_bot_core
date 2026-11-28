@@ -34,7 +34,7 @@ their card lands; each package README names its card.
 | `delivery_bot_costmap` | C++ | Layered global and local costmaps *(stub)* | #14 |
 | `delivery_bot_collision` | C++ | Footprint, exact distance fields, inflation and collision-checking library | #15 |
 | `delivery_bot_geometry` | C++, Rust | SE(2), Reeds-Shepp/Dubins, Ackermann primitives and arc utilities library | #16 |
-| `delivery_bot_planner` | C++ | Hybrid-A* planner and path post-processing *(stub)* | #17, #18 |
+| `delivery_bot_planner` | C++ | Hybrid-A* planner (PlanPath); path post-processing *(stub)* | #17, #18 |
 | `delivery_bot_step_controller` | Rust | Follows one `step_size` arc and stops *(stub)* | #19 |
 | `delivery_bot_safety` | C++ | Emergency stop, command watchdog and gating *(stub)* | #20 |
 | `delivery_bot_executive` | Python | Grid-step executive and mission manager *(stub)* | #21, #22 |

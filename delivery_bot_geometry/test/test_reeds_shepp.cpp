@@ -185,3 +185,39 @@ TEST(ReedsShepp, RejectsBadRadius)
   EXPECT_THROW(dbg::reeds_shepp_all({}, {1.0, 0.0, 0.0}, 0.0), std::invalid_argument);
   EXPECT_THROW(dbg::reeds_shepp_shortest({}, {1.0, 0.0, 0.0}, -2.0), std::invalid_argument);
 }
+
+TEST(ReedsShepp, LengthMatchesShortest)
+{
+  dbg::test::RandomPoses rng(46);
+  for (int i = 0; i < 3000; ++i) {
+    const dbg::Pose2 a = rng.pose(i % 2 == 0 ? 3.0 : 10.0);
+    const dbg::Pose2 b = rng.pose(i % 2 == 0 ? 3.0 : 10.0);
+    // Bitwise: the planner compares these numbers.
+    EXPECT_EQ(dbg::reeds_shepp_length(a, b, kRadius), dbg::reeds_shepp_shortest(a, b, kRadius).path.length());
+  }
+  EXPECT_EQ(dbg::reeds_shepp_length({1.0, 2.0, 0.3}, {1.0, 2.0, 0.3}, kRadius), 0.0);
+  EXPECT_THROW(dbg::reeds_shepp_length({}, {1.0, 0.0, 0.0}, 0.0), std::invalid_argument);
+}
+
+TEST(ReedsShepp, ShortestPicksTheSameCandidateAsBuildingAll)
+{
+  // reeds_shepp_shortest picks by length before building; the choice must match the minimum over reeds_shepp_all.
+  dbg::test::RandomPoses rng(47);
+  for (int i = 0; i < 2000; ++i) {
+    const dbg::Pose2 a = rng.pose(4.0);
+    const dbg::Pose2 b = rng.pose(4.0);
+    const auto all = dbg::reeds_shepp_all(a, b, kRadius);
+    std::size_t best = 0;
+    for (std::size_t k = 1; k < all.size(); ++k) {
+      if (all[k].path.length() < all[best].path.length()) {
+        best = k;
+      }
+    }
+    const auto shortest = dbg::reeds_shepp_shortest(a, b, kRadius);
+    EXPECT_EQ(shortest.word, all[best].word);
+    ASSERT_EQ(shortest.path.segments().size(), all[best].path.segments().size());
+    for (std::size_t k = 0; k < shortest.path.segments().size(); ++k) {
+      EXPECT_EQ(shortest.path.segments()[k].length, all[best].path.segments()[k].length);
+    }
+  }
+}

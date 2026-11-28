@@ -3,6 +3,8 @@
 #ifndef DELIVERY_BOT_GEOMETRY_ANGLE_HPP_
 #define DELIVERY_BOT_GEOMETRY_ANGLE_HPP_
 
+#include <cmath>
+
 namespace delivery_bot_geometry
 {
 
@@ -11,7 +13,15 @@ constexpr double kTwoPi = 2.0 * kPi;
 
 /// Wraps an angle into (-pi, pi]. -pi maps to +pi, so every direction has
 /// exactly one representation.
-double normalize_angle(double angle);
+inline double normalize_angle(double angle)
+{
+  // std::remainder gives [-pi, pi]; move the lower bound to the other side.
+  double wrapped = std::remainder(angle, kTwoPi);
+  if (wrapped <= -kPi) {
+    wrapped += kTwoPi;
+  }
+  return wrapped;
+}
 
 /// Wraps an angle into [0, 2 pi). Values within 1e-10 below 2 pi snap to 0, so
 /// rounding noise never turns a zero turn into a full circle (Dubins words rely
@@ -19,7 +29,7 @@ double normalize_angle(double angle);
 double normalize_angle_positive(double angle);
 
 /// Signed shortest rotation from `from` to `to`, in (-pi, pi].
-double angle_diff(double to, double from);
+inline double angle_diff(double to, double from) { return normalize_angle(to - from); }
 
 /// Interpolates along the shortest rotation: t = 0 gives `from`, t = 1 gives
 /// `to` (normalised).

@@ -15,27 +15,7 @@ namespace
 {
 constexpr double kMinSegmentLength = 1e-12;
 
-// sin(u) / u, with the Taylor series near 0 where the quotient loses precision.
-double sinc(double u)
-{
-  constexpr double kSeriesBelow = 1e-4;
-  if (std::abs(u) < kSeriesBelow) {
-    return 1.0 - u * u / 6.0;
-  }
-  return std::sin(u) / u;
-}
 }  // namespace
-
-Pose2 advance(const Pose2 & start, double curvature, double length)
-{
-  // The chord of an arc points along the mean heading and has length l * sinc(dtheta / 2).
-  const double dtheta = curvature * length;
-  const double half = 0.5 * dtheta;
-  const double chord = length * sinc(half);
-  const double heading = start.yaw + half;
-  return {
-    start.x + chord * std::cos(heading), start.y + chord * std::sin(heading), normalize_angle(start.yaw + dtheta)};
-}
 
 Path::Path(const Pose2 & start, std::vector<Segment> segments)
 : start_(start.x, start.y, normalize_angle(start.yaw))

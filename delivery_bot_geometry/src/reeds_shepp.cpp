@@ -4,6 +4,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <limits>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -272,8 +273,10 @@ const std::array<Formula, 7> kFormulas{{
 }};
 const Formula kCcscc{"LRSLR", &lp_rm_slm_rp, &word_ccscc, false};
 
-// Plain, time-flipped, reflected and both, for the problem (x, y, phi); reversed word order if `backwards`.
-void add_variants(const Formula & formula, double x, double y, double phi, bool backwards, std::vector<Word> & out)
+// Plain, time-flipped, reflected and both, for the problem (x, y, phi); reversed word order if `backwards`. Calls
+// `sink(word)` for every feasible one.
+template<typename Sink>
+void add_variants(const Formula & formula, double x, double y, double phi, bool backwards, Sink & sink)
 {
   struct Variant
   {
@@ -304,13 +307,13 @@ void add_variants(const Formula & formula, double x, double y, double phi, bool 
     if (backwards) {
       reverse_order(word);
     }
-    out.push_back(std::move(word));
+    sink(word);
   }
 }
 
-}  // namespace
-
-std::vector<CurveCandidate> reeds_shepp_all(const Pose2 & start, const Pose2 & goal, double radius)
+// Every feasible word from start to goal, in the fixed candidate order.
+template<typename Sink>
+void for_each_word(const Pose2 & start, const Pose2 & goal, double radius, Sink && sink)
 {
   detail::check_radius(radius);
   const Pose2 rel = between(start, goal);
@@ -320,32 +323,69 @@ std::vector<CurveCandidate> reeds_shepp_all(const Pose2 & start, const Pose2 & g
   // The backwards problem: drive from the goal to the start in reverse time.
   const double xb = x * std::cos(phi) + y * std::sin(phi);
   const double yb = x * std::sin(phi) - y * std::cos(phi);
-
-  std::vector<Word> words;
   for (const Formula & formula : kFormulas) {
-    add_variants(formula, x, y, phi, false, words);
+    add_variants(formula, x, y, phi, false, sink);
     if (formula.backwards) {
-      add_variants(formula, xb, yb, phi, true, words);
+      add_variants(formula, xb, yb, phi, true, sink);
     }
   }
-  add_variants(kCcscc, x, y, phi, false, words);
+  add_variants(kCcscc, x, y, phi, false, sink);
+}
 
-  std::vector<CurveCandidate> candidates;
-  candidates.reserve(words.size());
-  for (const Word & word : words) {
-    candidates.push_back(detail::make_candidate(start, radius, word.letters, word.values.data(), word.count));
+// The length Path would report for this word: the same segment threshold and summation order as Path's
+// constructor, so comparisons (and with them the tie-breaking) are bitwise identical to comparing built paths.
+double word_length(const Word & word, double radius)
+{
+  constexpr double kMinSegmentLength = 1e-12;  // as in path.cpp
+  double total = 0.0;
+  for (std::size_t i = 0; i < word.count; ++i) {
+    const double length = word.values.at(i) * radius;
+    if (std::abs(length) >= kMinSegmentLength) {
+      total = total + std::abs(length);
+    }
   }
+  return total;
+}
+
+}  // namespace
+
+std::vector<CurveCandidate> reeds_shepp_all(const Pose2 & start, const Pose2 & goal, double radius)
+{
+  std::vector<CurveCandidate> candidates;
+  for_each_word(start, goal, radius, [&](const Word & word) {
+    candidates.push_back(detail::make_candidate(start, radius, word.letters, word.values.data(), word.count));
+  });
   return candidates;
 }
 
 CurveCandidate reeds_shepp_shortest(const Pose2 & start, const Pose2 & goal, double radius)
 {
-  std::vector<CurveCandidate> candidates = reeds_shepp_all(start, goal, radius);
-  if (candidates.empty()) {
+  // Pick by length first and build only the winner: same choice as building every candidate, far less work.
+  Word best;
+  double best_length = std::numeric_limits<double>::infinity();
+  for_each_word(start, goal, radius, [&](const Word & word) {
+    const double length = word_length(word, radius);
+    if (length < best_length) {
+      best_length = length;
+      best = word;
+    }
+  });
+  if (best.count == 0) {
     // Some word reaches every goal (Reeds & Shepp 1990); only rounding could get here.
     throw std::logic_error("reeds_shepp_shortest: no feasible word");
   }
-  return detail::shortest(std::move(candidates));
+  return detail::make_candidate(start, radius, best.letters, best.values.data(), best.count);
+}
+
+double reeds_shepp_length(const Pose2 & start, const Pose2 & goal, double radius)
+{
+  double best_length = std::numeric_limits<double>::infinity();
+  for_each_word(
+    start, goal, radius, [&](const Word & word) { best_length = std::min(best_length, word_length(word, radius)); });
+  if (!std::isfinite(best_length)) {
+    throw std::logic_error("reeds_shepp_length: no feasible word");
+  }
+  return best_length;
 }
 
 }  // namespace delivery_bot_geometry

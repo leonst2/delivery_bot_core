@@ -94,8 +94,7 @@ CollisionChecker::CollisionChecker(Grid grid, Footprint footprint, CheckerParams
 : grid_(std::move(grid)),
   params_(params),
   field_(compute_distance_field(grid_, params_.rule)),
-  body_{std::move(footprint), {}},
-  swept_{body_.polygon, {}}
+  body_{std::move(footprint), {}}
 {
   if (body_.polygon.vertices().size() > kMaxFootprintVertices) {
     throw std::invalid_argument("CollisionChecker: footprints are limited to kMaxFootprintVertices vertices");
@@ -107,8 +106,11 @@ CollisionChecker::CollisionChecker(Grid grid, Footprint footprint, CheckerParams
     throw std::invalid_argument("CollisionChecker: sweep_step must be finite and > 0");
   }
   body_.circles = body_.polygon.circle_cover(params_.cover_circles);
-  swept_.polygon = body_.polygon.padded(params_.sweep_step / 2.0);
-  swept_.circles = swept_.polygon.circle_cover(params_.cover_circles);
+  for (int level = 0; level <= kSweepLevels; ++level) {
+    Footprint padded = body_.polygon.padded(params_.sweep_step / 2.0 / std::pow(2.0, level));
+    std::vector<Circle> circles = padded.circle_cover(params_.cover_circles);
+    swept_.push_back({std::move(padded), std::move(circles)});
+  }
 }
 
 bool CollisionChecker::in_collision(const dbg::Pose2 & pose) const { return check(body_, pose); }
@@ -181,34 +183,75 @@ double CollisionChecker::clearance_lower_bound(const dbg::Pose2 & pose) const
   return std::max(clearance, 0.0);
 }
 
-std::vector<dbg::Pose2> CollisionChecker::sweep_samples(const dbg::Pose2 & start, const dbg::Segment & segment) const
+std::vector<SweepSample> CollisionChecker::sweep_samples(
+  const dbg::Pose2 & start, const dbg::Segment & segment, SweepRefine refine) const
 {
   // A footprint point at distance rho from base_link moves at most (1 + |curvature| * rho) per metre of travel.
   const double length = std::abs(segment.length);
   const double factor = 1.0 + std::abs(segment.curvature) * body_.polygon.circumscribed_radius();
   const auto count = static_cast<std::size_t>(std::max(1.0, std::ceil(length * factor / params_.sweep_step)));
-  std::vector<dbg::Pose2> poses;
-  poses.reserve(count + 1);
+  const double step = length / static_cast<double>(count);
+
+  // Arc lengths: the regular grid, plus refinements step / 2^m towards the ends.
+  std::vector<double> at;
+  at.reserve(count + 1 + 2 * static_cast<std::size_t>(kSweepLevels));
   for (std::size_t k = 0; k <= count; ++k) {
-    const double s = length * static_cast<double>(k) / static_cast<double>(count);
-    poses.push_back(dbg::advance(start, segment.curvature, segment.direction() * s));
+    at.push_back(length * static_cast<double>(k) / static_cast<double>(count));
   }
-  return poses;
+  for (int m = 1; m <= kSweepLevels; ++m) {
+    const double offset = step / std::pow(2.0, m);
+    if (refine.start) {
+      at.push_back(offset);
+    }
+    if (refine.end) {
+      at.push_back(length - offset);
+    }
+  }
+  std::sort(at.begin(), at.end());
+  at.erase(std::unique(at.begin(), at.end()), at.end());
+
+  // Each sample needs half the movement to its farther neighbour as padding; pick the finest level that is enough.
+  std::vector<SweepSample> samples;
+  samples.reserve(at.size());
+  for (std::size_t k = 0; k < at.size(); ++k) {
+    const double left = k > 0 ? at[k] - at[k - 1] : 0.0;
+    const double right = k + 1 < at.size() ? at[k + 1] - at[k] : 0.0;
+    const double needed = std::max(left, right) * factor / 2.0;
+    int level = 0;
+    // The padding must cover what is needed; 1e-12 relative slack only absorbs rounding (exact powers of two).
+    while (level < kSweepLevels && params_.sweep_step / 2.0 / std::pow(2.0, level + 1) >= needed * (1.0 - 1e-12)) {
+      ++level;
+    }
+    samples.push_back({dbg::advance(start, segment.curvature, segment.direction() * at[k]), level});
+  }
+  return samples;
 }
 
-bool CollisionChecker::segment_in_collision(const dbg::Pose2 & start, const dbg::Segment & segment) const
+bool CollisionChecker::segment_in_collision(
+  const dbg::Pose2 & start, const dbg::Segment & segment, SweepRefine refine) const
 {
-  const std::vector<dbg::Pose2> poses = sweep_samples(start, segment);
-  return std::any_of(poses.begin(), poses.end(), [this](const dbg::Pose2 & pose) { return check(swept_, pose); });
+  // Shortcut: no footprint point moves farther than length * (1 + |curvature| * circumscribed radius). If the
+  // footprint at the start is farther than that from every obstacle, the whole motion is free.
+  const double travel =
+    std::abs(segment.length) * (1.0 + std::abs(segment.curvature) * body_.polygon.circumscribed_radius());
+  if (clearance_lower_bound(start) > travel) {
+    return false;
+  }
+  const std::vector<SweepSample> samples = sweep_samples(start, segment, refine);
+  return std::any_of(samples.begin(), samples.end(), [this](const SweepSample & sample) {
+    return check(swept_[static_cast<std::size_t>(sample.level)], sample.pose);
+  });
 }
 
-bool CollisionChecker::path_in_collision(const dbg::Path & path) const
+bool CollisionChecker::path_in_collision(const dbg::Path & path, SweepRefine refine) const
 {
   if (path.empty()) {
     return in_collision(path.start());
   }
-  for (std::size_t i = 0; i < path.segments().size(); ++i) {
-    if (segment_in_collision(path.segment_start_pose(i), path.segments()[i])) {
+  const std::size_t last = path.segments().size() - 1;
+  for (std::size_t i = 0; i <= last; ++i) {
+    const SweepRefine here{refine.start && i == 0, refine.end && i == last};
+    if (segment_in_collision(path.segment_start_pose(i), path.segments()[i], here)) {
       return true;
     }
   }
