@@ -9,10 +9,12 @@
 #ifndef DELIVERY_BOT_GEOMETRY_PATH_HPP_
 #define DELIVERY_BOT_GEOMETRY_PATH_HPP_
 
+#include <cmath>
 #include <cstddef>
 #include <string>
 #include <vector>
 
+#include "delivery_bot_geometry/angle.hpp"
 #include "delivery_bot_geometry/se2.hpp"
 
 namespace delivery_bot_geometry
@@ -31,9 +33,31 @@ struct Segment
   [[nodiscard]] int direction() const { return length < 0.0 ? -1 : 1; }
 };
 
+namespace detail
+{
+// sin(u) / u, with the Taylor series near 0 where the quotient loses precision.
+inline double sinc(double u)
+{
+  constexpr double kSeriesBelow = 1e-4;
+  if (std::abs(u) < kSeriesBelow) {
+    return 1.0 - u * u / 6.0;
+  }
+  return std::sin(u) / u;
+}
+}  // namespace detail
+
 /// The pose after driving the signed `length` with constant `curvature` from `start`. Numerically stable for
-/// curvature -> 0 (it becomes a straight line without a special case).
-Pose2 advance(const Pose2 & start, double curvature, double length);
+/// curvature -> 0 (it becomes a straight line without a special case). Inline: the planner calls it millions of times.
+inline Pose2 advance(const Pose2 & start, double curvature, double length)
+{
+  // The chord of an arc points along the mean heading and has length l * sinc(dtheta / 2).
+  const double dtheta = curvature * length;
+  const double half = 0.5 * dtheta;
+  const double chord = length * detail::sinc(half);
+  const double heading = start.yaw + half;
+  return {
+    start.x + chord * std::cos(heading), start.y + chord * std::sin(heading), normalize_angle(start.yaw + dtheta)};
+}
 
 struct PathSample
 {
