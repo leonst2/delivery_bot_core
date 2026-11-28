@@ -1,0 +1,5 @@
+# The node logs with RCLCPP_* macros, each of which adds dozens of points of cognitive complexity to the function
+# that uses it. Count the code, not the macro expansions.
+InheritParentConfig: true
+CheckOptions:
+  readability-function-cognitive-complexity.IgnoreMacros: true

@@ -12,6 +12,10 @@ find_package(delivery_bot_geometry REQUIRED)
 find_package(delivery_bot_collision REQUIRED)
 find_package(delivery_bot_interfaces REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(tf2_msgs REQUIRED)
 
 # No fused multiply-add contraction: byte-identical paths on ARM64 and x86_64 (same as the libraries).
 set(DELIVERY_BOT_PLANNER_FLAGS "")
@@ -38,12 +42,24 @@ target_link_libraries(planner_core PUBLIC
 target_compile_features(planner_core PUBLIC cxx_std_17)
 target_compile_options(planner_core PRIVATE ${DELIVERY_BOT_PLANNER_FLAGS})
 
-add_executable(planner src/planner_node.cpp)
-target_compile_features(planner PRIVATE cxx_std_17)
-target_compile_options(planner PRIVATE ${DELIVERY_BOT_PLANNER_FLAGS})
-target_link_libraries(planner rclcpp::rclcpp ${delivery_bot_interfaces_TARGETS})
+# The ROS node as a library, so the node test can run it in-process.
+add_library(planner_node SHARED src/planner_node.cpp)
+target_link_libraries(planner_node PUBLIC
+  planner_core
+  rclcpp::rclcpp
+  rclcpp_action::rclcpp_action
+  ${nav_msgs_TARGETS}
+  ${geometry_msgs_TARGETS}
+  ${tf2_msgs_TARGETS}
+  ${delivery_bot_interfaces_TARGETS}
+)
+target_compile_options(planner_node PRIVATE ${DELIVERY_BOT_PLANNER_FLAGS})
 
-install(TARGETS planner_core
+add_executable(planner src/main.cpp)
+target_compile_options(planner PRIVATE ${DELIVERY_BOT_PLANNER_FLAGS})
+target_link_libraries(planner planner_node)
+
+install(TARGETS planner_core planner_node
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
   RUNTIME DESTINATION bin
@@ -63,6 +79,10 @@ if(BUILD_TESTING)
   )
   target_link_libraries(test_planner_core planner_core)
   target_compile_options(test_planner_core PRIVATE ${DELIVERY_BOT_PLANNER_FLAGS})
+
+  ament_add_gtest(test_planner_node test/test_planner_node.cpp TIMEOUT 120)
+  target_link_libraries(test_planner_node planner_node)
+  target_compile_options(test_planner_node PRIVATE ${DELIVERY_BOT_PLANNER_FLAGS})
 endif()
 
 ament_package()
