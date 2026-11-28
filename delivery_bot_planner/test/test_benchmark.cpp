@@ -52,8 +52,10 @@ dbg::Pose2 street_pose(std::mt19937 & rng, const dbc::CollisionChecker & checker
   }
 }
 
-// Throughput of pose_check_rate() on the reference machine for the 1 s limit: the x86_64 CI runner on which the limit
-// was set (p95 0.94 s). Faster machines keep the 1 s limit.
+// Throughput of pose_check_rate() on the reference machine for the 1 s limit, about 20 % faster than the x86_64 CI
+// runner: that runner measures about 10 M/s here with p95 0.94 s, and its slower variant 8 M/s with p95 1.04 s. The
+// 20 % absorbs runner noise that this measurement doesn't catch. Faster machines (arm64 dev machine: 15.6 M/s,
+// p95 0.61 s) keep the plain 1 s limit.
 constexpr double kReferenceChecksPerSecond = 12.0e6;
 // A machine more than this much slower than the reference fails the benchmark anyway, so a severe slowdown of the
 // planner can't hide behind a slow machine.
