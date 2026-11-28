@@ -7,6 +7,7 @@
 #ifndef DELIVERY_BOT_COLLISION_GRID_HPP_
 #define DELIVERY_BOT_COLLISION_GRID_HPP_
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -48,11 +49,23 @@ public:
   void set(int x, int y, std::int8_t value) { data_[index(x, y)] = value; }
 
   /// The cell that contains a world point (may lie outside the map: check with contains()).
-  [[nodiscard]] CellIndex world_to_cell(double wx, double wy) const;
+  [[nodiscard]] CellIndex world_to_cell(double wx, double wy) const
+  {
+    return {
+      static_cast<int>(std::floor((wx - origin_x_) / resolution_)),
+      static_cast<int>(std::floor((wy - origin_y_) / resolution_))};
+  }
   /// World coordinates of the centre of cell (x, y).
-  [[nodiscard]] Eigen::Vector2d cell_center(int x, int y) const;
+  [[nodiscard]] Eigen::Vector2d cell_center(int x, int y) const
+  {
+    return {origin_x_ + (x + 0.5) * resolution_, origin_y_ + (y + 0.5) * resolution_};
+  }
   /// True if the world point lies inside the map rectangle.
-  [[nodiscard]] bool contains_world(double wx, double wy) const;
+  [[nodiscard]] bool contains_world(double wx, double wy) const
+  {
+    return wx >= origin_x_ && wy >= origin_y_ && wx <= origin_x_ + width_ * resolution_ &&
+           wy <= origin_y_ + height_ * resolution_;
+  }
 
 private:
   int width_{0};

@@ -230,6 +230,13 @@ std::vector<SweepSample> CollisionChecker::sweep_samples(
 bool CollisionChecker::segment_in_collision(
   const dbg::Pose2 & start, const dbg::Segment & segment, SweepRefine refine) const
 {
+  // Shortcut: no footprint point moves farther than length * (1 + |curvature| * circumscribed radius). If the
+  // footprint at the start is farther than that from every obstacle, the whole motion is free.
+  const double travel =
+    std::abs(segment.length) * (1.0 + std::abs(segment.curvature) * body_.polygon.circumscribed_radius());
+  if (clearance_lower_bound(start) > travel) {
+    return false;
+  }
   const std::vector<SweepSample> samples = sweep_samples(start, segment, refine);
   return std::any_of(samples.begin(), samples.end(), [this](const SweepSample & sample) {
     return check(swept_[static_cast<std::size_t>(sample.level)], sample.pose);

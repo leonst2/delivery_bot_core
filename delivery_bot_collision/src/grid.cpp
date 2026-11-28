@@ -38,22 +38,4 @@ Grid::Grid(int width, int height, double resolution, double origin_x, double ori
 {
 }
 
-CellIndex Grid::world_to_cell(double wx, double wy) const
-{
-  return {
-    static_cast<int>(std::floor((wx - origin_x_) / resolution_)),
-    static_cast<int>(std::floor((wy - origin_y_) / resolution_))};
-}
-
-Eigen::Vector2d Grid::cell_center(int x, int y) const
-{
-  return {origin_x_ + (x + 0.5) * resolution_, origin_y_ + (y + 0.5) * resolution_};
-}
-
-bool Grid::contains_world(double wx, double wy) const
-{
-  return wx >= origin_x_ && wy >= origin_y_ && wx <= origin_x_ + width_ * resolution_ &&
-         wy <= origin_y_ + height_ * resolution_;
-}
-
 }  // namespace delivery_bot_collision
