@@ -83,7 +83,8 @@ Hybrid-A* over (x, y, heading bin, driving direction):
 **Benchmark** (`test_benchmark.cpp`, standing in for the #26 corpus): four city-like 100 × 100 m maps at 0.1 m (blocks,
 8 m streets, parked cars, clutter), 100 street-to-street queries with headings along the street (either direction,
 ±25°) and at least 0.1 m clearance. Release on arm64: median 36 ms, p95 0.61 s, no failures; the test asserts
-p95 < 1 s in optimised builds. With uniformly random headings (goals across the street next to a parked car) p95 is
+p95 < 1 s in optimised builds, scaled up (at most 2×) on machines that check poses more slowly than the x86_64 CI
+runner the limit was set on, so a slow shared runner doesn't fail the test. With uniformly random headings (goals across the street next to a parked car) p95 is
 about 0.66 s.
 
 How the defaults were chosen: at weight 1.0 the search explored tens of thousands of nodes per query (1–2 s and more),
