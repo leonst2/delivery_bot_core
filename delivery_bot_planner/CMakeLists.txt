@@ -24,6 +24,7 @@ add_library(planner_core SHARED
   src/heuristic.cpp
   src/hybrid_astar.cpp
   src/replan.cpp
+  src/planar_tf.cpp
 )
 target_include_directories(planner_core PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -56,6 +57,7 @@ if(BUILD_TESTING)
     test/test_heuristic.cpp
     test/test_hybrid_astar.cpp
     test/test_replan.cpp
+    test/test_planar_tf.cpp
     test/test_benchmark.cpp
     TIMEOUT 300
   )
