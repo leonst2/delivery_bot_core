@@ -74,6 +74,8 @@ public:
   [[nodiscard]] const PlannerParams & params() const { return params_; }
   [[nodiscard]] const delivery_bot_collision::CollisionChecker & checker() const { return *checker_; }
   [[nodiscard]] const std::vector<delivery_bot_geometry::MotionPrimitive> & primitives() const { return primitives_; }
+  /// The point the distance heuristic is computed for: the footprint centroid, in base_link.
+  [[nodiscard]] const Eigen::Vector2d & footprint_centre() const { return footprint_centre_; }
 
 private:
   [[nodiscard]] const DistanceHeuristic & heuristic_for(const delivery_bot_geometry::Pose2 & goal);
@@ -83,7 +85,7 @@ private:
   PlannerParams params_;
   std::vector<delivery_bot_geometry::MotionPrimitive> primitives_;
   double max_curvature_{0.0};
-  double base_clearance_{0.0};
+  double heuristic_clearance_{0.0};  // inscribed radius of the footprint, around its centroid
   Eigen::Vector2d footprint_centre_{0.0, 0.0};
 
   // Heuristic cache: re-plans to the same goal cell reuse the Dijkstra grid.

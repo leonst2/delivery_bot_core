@@ -54,6 +54,7 @@ if(BUILD_TESTING)
   ament_add_gtest(test_planner_core
     test/test_heuristic.cpp
     test/test_hybrid_astar.cpp
+    test/test_benchmark.cpp
     TIMEOUT 300
   )
   target_link_libraries(test_planner_core planner_core)

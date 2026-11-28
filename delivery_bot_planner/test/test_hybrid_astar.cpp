@@ -26,12 +26,14 @@ void expect_valid(
 {
   ASSERT_EQ(r.error, dbp::PlanError::kNone);
   EXPECT_TRUE(dbg::approx_equal(r.path.start(), a, 1e-12));
-  EXPECT_TRUE(dbg::approx_equal(r.path.end(), b, 1e-6)) << r.path.end().x << " " << r.path.end().y;
-  EXPECT_FALSE(planner.checker().path_in_collision(r.path));
+  // Exactly on the goal (Reeds-Shepp shot) or within the goal tolerance.
+  EXPECT_LE(dbg::distance(r.path.end(), b), planner.params().goal_xy_tolerance + 1e-9);
+  EXPECT_LE(std::abs(dbg::angle_diff(r.path.end().yaw, b.yaw)), planner.params().goal_yaw_tolerance + 1e-9);
+  EXPECT_FALSE(planner.checker().path_in_collision(r.path, {true, true}));
   for (const auto & seg : r.path.segments()) {
     EXPECT_LE(std::abs(seg.curvature), 1.0 / kRMin + 1e-9);
   }
-  EXPECT_GE(r.path.length(), dbg::distance(a, b) - 1e-9);
+  EXPECT_GE(r.path.length(), dbg::distance(a, b) - planner.params().goal_xy_tolerance - 1e-9);
 }
 
 }  // namespace
@@ -177,4 +179,15 @@ TEST(HybridAStar, RejectsBadParams)
   short_arcs.motion.arc_length = 0.2;  // shorter than a 0.2 m cell diagonal
   EXPECT_THROW(dbp::HybridAStar(checker, short_arcs), std::invalid_argument);
   EXPECT_THROW(dbp::HybridAStar(nullptr), std::invalid_argument);
+}
+
+TEST(HybridAStar, OpenGoalsAreReachedExactly)
+{
+  // With room around the goal, a Reeds-Shepp shot gets there exactly; the tolerance is only a fallback.
+  dbp::HybridAStar planner(dbp::test::MapBuilder(30.0, 30.0).border().checker());
+  const dbg::Pose2 a{5.0, 5.0, 0.0};
+  const dbg::Pose2 b{22.0, 20.0, 2.0};
+  const auto r = planner.plan(a, b);
+  ASSERT_EQ(r.error, dbp::PlanError::kNone);
+  EXPECT_TRUE(dbg::approx_equal(r.path.end(), b, 1e-6));
 }

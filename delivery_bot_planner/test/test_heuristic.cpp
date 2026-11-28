@@ -23,13 +23,13 @@ TEST(Heuristic, OpenFieldIsOctileDistance)
   const dbp::DistanceHeuristic h(*checker, {10.05, 10.05}, 0.135);
   EXPECT_DOUBLE_EQ(h.at(10.05, 10.05), 0.0);
   EXPECT_NEAR(h.at(14.05, 10.05), 4.0, 1e-9);
-  EXPECT_NEAR(h.at(14.05, 14.05), 40 * 0.1 * std::sqrt(2.0), 1e-9);
-  // Never more than ~8 % above the straight line in open space (octile metric).
+  EXPECT_NEAR(h.at(14.05, 14.05), 40 * 0.1 * 1.4, 1e-9);  // integer octile costs: diagonal 1.4
+  // Close to the straight line in open space (octile metric with a 1.4 diagonal: between -1 % and +8 %).
   for (const double x : {1.0, 5.3, 17.9}) {
     for (const double y : {1.1, 9.7, 18.2}) {
       const double straight = std::hypot(x - 10.05, y - 10.05);
       EXPECT_LE(h.at(x, y), straight * 1.083 + 0.3);
-      EXPECT_GE(h.at(x, y), straight - 0.3);
+      EXPECT_GE(h.at(x, y), straight * 0.98 - 0.3);
     }
   }
   EXPECT_DOUBLE_EQ(h.at(-5.0, 3.0), 0.0);  // outside: no information

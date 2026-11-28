@@ -28,6 +28,8 @@ namespace
 
 constexpr double kInf = std::numeric_limits<double>::infinity();
 constexpr std::size_t kCheckEvery = 64;  // expansions between deadline / cancel checks
+constexpr std::int32_t kRegular = -1;
+constexpr std::int32_t kWithinTolerance = -2;  // goal candidate: a lattice node within the goal tolerance
 
 struct Node
 {
@@ -36,7 +38,7 @@ struct Node
   std::int32_t parent{-1};
   dbg::Segment segment;   // motion from the parent
   int direction{0};       // of that motion, 0 for the start
-  std::int32_t shot{-1};  // >= 0: a goal candidate, reached by shots[shot] from `parent`
+  std::int32_t shot{-1};  // >= 0: goal candidate via shots[shot] from `parent`; kWithinTolerance: candidate as is
 };
 
 struct OpenEntry
@@ -92,7 +94,7 @@ public:
       result.error = PlanError::kNoPath;
       return result;
     }
-    nodes_.push_back({start_, 0.0, -1, {}, 0, -1});
+    nodes_.push_back({start_, 0.0, -1, {}, 0, kRegular});
     visits_[key(start_, 0)] = {0.0, 0, false};
     open_.push({h0, h0, order_++, 0});
 
@@ -100,7 +102,7 @@ public:
       const OpenEntry entry = open_.top();
       open_.pop();
       const Node & node = nodes_[static_cast<std::size_t>(entry.node)];
-      if (node.shot >= 0) {
+      if (node.shot != kRegular) {
         return finish(entry.node);  // the cheapest goal candidate is cheaper than anything still open
       }
       Visit & visit = visits_[key(node.pose, node.direction)];
@@ -128,9 +130,13 @@ public:
 private:
   double heuristic(const dbg::Pose2 & pose) const
   {
-    const double d = distance_.at(pose.x, pose.y);
+    const Eigen::Vector2d centre = pose.transform(planner_.footprint_centre());
+    const double d = distance_.at(centre.x(), centre.y());
     if (!std::isfinite(d)) {
       return kInf;
+    }
+    if (d > params_.rs_heuristic_radius) {
+      return params_.heuristic_weight * d;
     }
     return params_.heuristic_weight * std::max(d, dbg::reeds_shepp_length(pose, goal_, radius_));
   }
@@ -176,7 +182,11 @@ private:
     dbg::CurveCandidate shot = dbg::reeds_shepp_shortest(node.pose, goal_, radius_);
     // Far from the goal, a shortest Reeds-Shepp curve with a cusp is rarely what a driver would do; only near it
     // (parking, turning around) are cusps fair game.
-    if ((!near && shot.path.cusp_count() > 0) || planner_.checker().path_in_collision(shot.path)) {
+    // Refined towards the goal (which may be next to a wall) and, from the start node, towards the robot's pose.
+    const dbc::SweepRefine refine{index == 0, true};
+    if (
+      (!near && !params_.far_shots_with_cusps && shot.path.cusp_count() > 0) ||
+      planner_.checker().path_in_collision(shot.path, refine)) {
       return;
     }
     double g = node.g;
@@ -210,7 +220,8 @@ private:
       if (found != visits_.end() && g >= found->second.g) {
         continue;
       }
-      if (planner_.checker().segment_in_collision(node.pose, primitive.segment)) {
+      // The robot may stand closer to an obstacle than the sweep margin: refine the first motions from its pose.
+      if (planner_.checker().segment_in_collision(node.pose, primitive.segment, {index == 0, false})) {
         continue;
       }
       const double h = heuristic(next);
@@ -218,9 +229,17 @@ private:
         continue;
       }
       const auto next_index = static_cast<std::int32_t>(nodes_.size());
-      nodes_.push_back({next, g, index, primitive.segment, direction, -1});
+      nodes_.push_back({next, g, index, primitive.segment, direction, kRegular});
       visits_[next_key] = {g, next_index, false};
       open_.push({g + h, h, order_++, next_index});
+      // Close enough to the goal: the path may also end here (an exact shot wins if it is cheaper).
+      if (
+        dbg::distance(next, goal_) <= params_.goal_xy_tolerance &&
+        std::abs(dbg::angle_diff(next.yaw, goal_.yaw)) <= params_.goal_yaw_tolerance) {
+        const auto candidate = static_cast<std::int32_t>(nodes_.size());
+        nodes_.push_back({next, g, index, primitive.segment, direction, kWithinTolerance});
+        open_.push({g, 0.0, order_++, candidate});
+      }
     }
   }
 
@@ -228,13 +247,16 @@ private:
   {
     const Node & goal_node = nodes_[static_cast<std::size_t>(goal_index)];
     std::vector<dbg::Segment> segments;
-    for (std::int32_t n = goal_node.parent; nodes_[static_cast<std::size_t>(n)].parent >= 0;
+    const std::int32_t last = goal_node.shot >= 0 ? goal_node.parent : goal_index;
+    for (std::int32_t n = last; nodes_[static_cast<std::size_t>(n)].parent >= 0;
          n = nodes_[static_cast<std::size_t>(n)].parent) {
       segments.push_back(nodes_[static_cast<std::size_t>(n)].segment);
     }
     std::reverse(segments.begin(), segments.end());
-    const dbg::Path & shot = shots_[static_cast<std::size_t>(goal_node.shot)];
-    segments.insert(segments.end(), shot.segments().begin(), shot.segments().end());
+    if (goal_node.shot >= 0) {
+      const dbg::Path & shot = shots_[static_cast<std::size_t>(goal_node.shot)];
+      segments.insert(segments.end(), shot.segments().begin(), shot.segments().end());
+    }
     PlanResult result;
     result.path = dbg::Path(start_, std::move(segments));
     result.cost = goal_node.g;
@@ -279,7 +301,10 @@ HybridAStar::HybridAStar(std::shared_ptr<const dbc::CollisionChecker> checker, P
   }
   primitives_ = dbg::make_primitives(params_.motion);
   max_curvature_ = 1.0 / params_.motion.min_turning_radius;
-  base_clearance_ = base_clearance(checker_->footprint());
+  // The footprint contains a disk of its inscribed radius around the centroid, so in every feasible pose the centroid
+  // is at least that far from any obstacle: the heuristic follows the centroid, which keeps it out of gaps narrower
+  // than the robot (base_link alone sits 0.135 m from the rear edge and would squeeze through anything).
+  heuristic_clearance_ = checker_->footprint().inscribed_radius();
   footprint_centre_ = checker_->footprint().centroid();
 }
 
@@ -335,10 +360,11 @@ double HybridAStar::path_cost(const dbg::Path & path) const
 
 const DistanceHeuristic & HybridAStar::heuristic_for(const dbg::Pose2 & goal)
 {
-  const int gx = static_cast<int>(std::floor(goal.x / params_.xy_resolution));
-  const int gy = static_cast<int>(std::floor(goal.y / params_.xy_resolution));
+  const Eigen::Vector2d centre = goal.transform(footprint_centre_);
+  const int gx = static_cast<int>(std::floor(centre.x() / checker_->grid().resolution()));
+  const int gy = static_cast<int>(std::floor(centre.y() / checker_->grid().resolution()));
   if (!heuristic_ || gx != heuristic_goal_x_ || gy != heuristic_goal_y_) {
-    heuristic_ = std::make_unique<DistanceHeuristic>(*checker_, goal.position(), base_clearance_);
+    heuristic_ = std::make_unique<DistanceHeuristic>(*checker_, centre, heuristic_clearance_);
     heuristic_goal_x_ = gx;
     heuristic_goal_y_ = gy;
   }
